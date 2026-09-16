@@ -1,0 +1,600 @@
+openapi: 3.0.3
+info:
+  title: Poscloud External Wallet API
+  version: 1.0.0
+  description: |
+    API collection for customers and agents selling allocated wallet products.
+
+    Authentication flow:
+    1. Sign in with the API credentials configured on the customer profile.
+    2. In Swagger UI, click **Authorize** and paste the `accessToken` only.
+       Swagger adds the `Bearer` prefix automatically.
+    3. For other clients, send it as `Authorization: Bearer <accessToken>`.
+    4. Refresh the session when the access token expires.
+
+    Financial requests require a unique `Idempotency-Key`. Retrying the same
+    request must reuse the same key and unchanged body. Sales and reversals also
+    require the customer's four-digit mobile PIN.
+servers:
+  - url: http://localhost:8080
+    description: Local development
+  - url: https://api.example.com
+    description: Replace with the production API URL
+tags:
+  - name: Authentication
+  - name: Wallet
+  - name: Products
+  - name: Sales
+  - name: Transactions
+security:
+  - bearerAuth: []
+paths:
+  /api/external/login:
+    post:
+      tags: [Authentication]
+      summary: Customer or agent login
+      operationId: externalLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              username: CUS00000001
+              password: customer-password
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tokens'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      operationId: refreshAccessToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: New access and refresh tokens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tokens'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/external/balances:
+    get:
+      tags: [Wallet]
+      summary: List wallet balances
+      description: Returns active customer wallet balances consolidated by currency.
+      operationId: listBalances
+      responses:
+        '200':
+          description: Currency balances
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Balance'
+              example:
+                - currency: USD
+                  availableBalance: 1250.50
+                - currency: ZWG
+                  availableBalance: 8000.00
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/external/products:
+    get:
+      tags: [Products]
+      summary: List products allocated to the customer
+      description: Only active products with active predefined commission plans are returned.
+      operationId: listAllocatedProducts
+      responses:
+        '200':
+          description: Products the authenticated customer can sell
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AllocatedProduct'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/external/sales:
+    post:
+      tags: [Sales]
+      summary: Sell an allocated product
+      description: |
+        Validates the mobile PIN, customer, product allocation, predefined plan,
+        product status, wallet currency and available balance before posting.
+
+        For a credit sale, `collectingAgentName`, `collectingAgentMobile`, and
+        `collectingAgentIdNumber` are required. Arbitrary biller or airtime data
+        may be supplied in `metadata`.
+      operationId: createSale
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaleRequest'
+            examples:
+              cashSale:
+                summary: Standard sale
+                value:
+                  productCode: ZETDC_USD
+                  customerReference: METER-123456
+                  mobilePin: '1234'
+                  amount: 10.00
+                  creditSale: false
+                  metadata:
+                    channel: mobile-app
+                    requestId: BILLER-REQ-1001
+              creditSale:
+                summary: Credit sale with collecting agent
+                value:
+                  productCode: ZETDC_USD
+                  customerReference: METER-123456
+                  mobilePin: '1234'
+                  amount: 20.00
+                  creditSale: true
+                  collectingAgentName: Jane Collector
+                  collectingAgentMobile: '0771112233'
+                  collectingAgentIdNumber: 12-345678-A-90
+                  metadata:
+                    route: Harare North
+      responses:
+        '200':
+          description: Sale result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sale'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/external/transactions:
+    get:
+      tags: [Transactions]
+      summary: List transaction history
+      operationId: listTransactions
+      parameters:
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        '200':
+          description: Detailed sales in newest-first order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sale'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/external/transactions/{reference}:
+    get:
+      tags: [Transactions]
+      summary: Get transaction details
+      operationId: getTransaction
+      parameters:
+        - $ref: '#/components/parameters/TransactionReference'
+      responses:
+        '200':
+          description: Detailed transaction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sale'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/external/transactions/{reference}/reverse:
+    post:
+      tags: [Transactions]
+      summary: Reverse a transaction
+      description: A successful transaction can be reversed once by the user who created it.
+      operationId: reverseTransaction
+      parameters:
+        - $ref: '#/components/parameters/TransactionReference'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReversalRequest'
+            example:
+              reason: Customer requested cancellation
+              mobilePin: '1234'
+      responses:
+        '200':
+          description: Reversed transaction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sale'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        Unique key for this financial request. Reuse the same key only when
+        retrying the exact same request body.
+      schema:
+        type: string
+        maxLength: 128
+      example: 58a8e4b4-a2fd-4b31-a4d8-72ea59ffce20
+    TransactionReference:
+      name: reference
+      in: path
+      required: true
+      schema:
+        type: string
+      example: TX550e8400e29b41d4a716446655440000
+
+  responses:
+    BadRequest:
+      description: Validation or business-rule failure
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          examples:
+            insufficientFunds:
+              value:
+                code: INSUFFICIENT_FUNDS
+                message: INSUFFICIENT_FUNDS
+                timestamp: '2026-09-15T10:00:00Z'
+            invalidPin:
+              value:
+                code: INVALID_MOBILE_PIN
+                message: INVALID_MOBILE_PIN
+                timestamp: '2026-09-15T10:00:00Z'
+    Unauthorized:
+      description: Missing, invalid, expired, or blocked credentials
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Forbidden:
+      description: Authenticated user cannot access this resource
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    NotFound:
+      description: Requested transaction, product, customer, or wallet was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Conflict:
+      description: Duplicate operation, reversal, or idempotency conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 72
+
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          minLength: 1
+
+    Tokens:
+      type: object
+      required: [accessToken, refreshToken, expiresIn, user]
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token used in the Bearer header.
+        refreshToken:
+          type: string
+          description: One-time refresh token. Store securely and replace after refresh.
+        expiresIn:
+          type: integer
+          format: int64
+          example: 900
+        user:
+          $ref: '#/components/schemas/AuthenticatedUser'
+
+    AuthenticatedUser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        role:
+          type: string
+          enum: [CUSTOMER, AGENT]
+        status:
+          type: string
+          enum: [ACTIVE, BLOCKED, DISABLED]
+
+    Balance:
+      type: object
+      required: [currency, availableBalance]
+      properties:
+        currency:
+          type: string
+          example: USD
+        availableBalance:
+          type: number
+          format: decimal
+          example: 1250.50
+
+    AllocatedProduct:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Customer allocation identifier.
+        customerId:
+          type: string
+          format: uuid
+        customerNumber:
+          type: string
+        commissionPlanId:
+          type: string
+          format: uuid
+        billerProductId:
+          type: string
+          format: uuid
+        productCode:
+          type: string
+          example: ZETDC_USD
+        productName:
+          type: string
+          example: ZETDC USD
+        biller:
+          type: string
+          example: ZETDC
+        currency:
+          type: string
+          example: USD
+        arrangementName:
+          type: string
+          example: Standard
+        totalCommissionPercentage:
+          type: number
+          example: 10.0000
+        agentCommissionPercentage:
+          type: number
+          example: 5.0000
+        platformCommissionPercentage:
+          type: number
+          example: 5.0000
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE]
+
+    SaleRequest:
+      type: object
+      required: [productCode, customerReference, mobilePin, amount]
+      properties:
+        productCode:
+          type: string
+          minLength: 1
+          maxLength: 60
+        customerReference:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Meter number, bill account, airtime mobile, or provider customer reference.
+        mobilePin:
+          type: string
+          format: password
+          pattern: '^\d{4}$'
+          example: '1234'
+        amount:
+          type: number
+          exclusiveMinimum: true
+          minimum: 0
+          example: 10.00
+        creditSale:
+          type: boolean
+          default: false
+        collectingAgentName:
+          type: string
+          maxLength: 200
+        collectingAgentMobile:
+          type: string
+          maxLength: 40
+        collectingAgentIdNumber:
+          type: string
+          maxLength: 100
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Arbitrary request metadata required by the biller or airtime provider.
+
+    ReversalRequest:
+      type: object
+      required: [reason, mobilePin]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+        mobilePin:
+          type: string
+          format: password
+          pattern: '^\d{4}$'
+          example: '1234'
+
+    Sale:
+      type: object
+      properties:
+        transactionReference:
+          type: string
+        reversalTransactionReference:
+          type: string
+          nullable: true
+        productCode:
+          type: string
+        productName:
+          type: string
+        currency:
+          type: string
+        customerReference:
+          type: string
+        faceValue:
+          type: number
+          description: Product value supplied in the sale request.
+        walletDebitAmount:
+          type: number
+          description: Amount deducted from the customer wallet after agent commission.
+        totalCommissionAmount:
+          type: number
+        agentCommissionAmount:
+          type: number
+        platformCommissionAmount:
+          type: number
+        creditSale:
+          type: boolean
+        collectingAgentName:
+          type: string
+          nullable: true
+        collectingAgentMobile:
+          type: string
+          nullable: true
+        collectingAgentIdNumber:
+          type: string
+          nullable: true
+        amountDue:
+          type: number
+          nullable: true
+        creditStatus:
+          type: string
+          nullable: true
+          enum: [PENDING, OUTSTANDING, COLLECTED, CANCELLED]
+        providerReference:
+          type: string
+          nullable: true
+        providerStatus:
+          type: string
+          enum: [SUCCESS, PENDING, FAILED, REVERSED]
+        requestMetadata:
+          type: object
+          additionalProperties: true
+        providerMetadata:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiError:
+      type: object
+      required: [code, message, timestamp]
+      properties:
+        code:
+          type: string
+          example: INSUFFICIENT_FUNDS
+        message:
+          type: string
+          example: INSUFFICIENT_FUNDS
+        timestamp:
+          type: string
+          format: date-time

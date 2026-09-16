@@ -1,0 +1,133 @@
+import {
+  LayoutDashboard,
+  Users,
+  ArrowLeftRight,
+  Globe2,
+  Settings2,
+  ShieldCheck,
+  BadgePercent,
+  Landmark,
+  HandCoins,
+  FileChartColumn,
+  BadgeDollarSign,
+} from "lucide-react";
+import type { Role } from "./session";
+export const roleNames: Record<Role, string> = {
+  SUPER_ADMIN: "Super administrator",
+  OPERATIONS: "Operations officer",
+  CORPORATE_ADMIN: "Corporate administrator",
+  CORPORATE_USER: "Corporate user",
+  CUSTOMER: "Customer",
+  AGENT: "Agent",
+};
+export const adminRoles: Role[] = [
+  "SUPER_ADMIN",
+  "OPERATIONS",
+  "CORPORATE_ADMIN",
+];
+export const staffRoles: Role[] = ["SUPER_ADMIN", "OPERATIONS"];
+export const workspaces = [
+  {
+    id: "overview",
+    name: "Overview",
+    icon: LayoutDashboard,
+    group: "Workspace",
+    roles: adminRoles,
+    description: "Your administration workspace, access and session details.",
+    stage: 4,
+  },
+  {
+    id: "customers",
+    name: "Customers",
+    icon: Users,
+    group: "Core banking",
+    roles: staffRoles,
+    description: "Manage individual and corporate customer relationships.",
+    stage: 4,
+  },
+  {
+    id: "transactions",
+    name: "Transactions",
+    icon: ArrowLeftRight,
+    group: "Core banking",
+    roles: staffRoles,
+    description: "Review money movements, adjustments and reversals.",
+    stage: 4,
+  },
+  {
+    id: "remittances",
+    name: "Remittances",
+    icon: Globe2,
+    group: "Payments",
+    roles: adminRoles,
+    description: "Manage remittance sends and payout operations.",
+    stage: 4,
+  },
+  {
+    id: "cash-out",
+    name: "Cash out",
+    icon: HandCoins,
+    group: "Payments",
+    roles: staffRoles,
+    description: "Pay out a remittance using its collection code.",
+    stage: 4,
+  },
+  {
+    id: "remittance-reports",
+    name: "Remittance reports",
+    icon: FileChartColumn,
+    group: "Payments",
+    roles: staffRoles,
+    description: "Download regulatory, income, cash-out and teller reports.",
+    stage: 4,
+  },
+  {
+    id: "credit-sales",
+    name: "Credit sales",
+    icon: BadgeDollarSign,
+    group: "Payments",
+    roles: staffRoles,
+    description: "Track collecting agents and outstanding credit sales.",
+    stage: 4,
+  },
+  {
+    id: "commissions",
+    name: "Agent commissions",
+    icon: BadgePercent,
+    group: "Payments",
+    roles: staffRoles,
+    description: "Review agent earnings and commission summaries.",
+    stage: 4,
+  },
+  {
+    id: "users",
+    name: "Users & access",
+    icon: ShieldCheck,
+    group: "Administration",
+    roles: ["SUPER_ADMIN", "CORPORATE_ADMIN"] as Role[],
+    description: "Manage team members and their assigned access.",
+    stage: 4,
+  },
+  {
+    id: "configuration",
+    name: "Configuration",
+    icon: Settings2,
+    group: "Administration",
+    roles: staffRoles,
+    description: "Manage currencies, fees, billers and products.",
+    stage: 4,
+  },
+  {
+    id: "audit",
+    name: "Audit trail",
+    icon: Landmark,
+    group: "Administration",
+    roles: staffRoles,
+    description: "Review administrative actions and their history.",
+    stage: 4,
+  },
+] as const;
+export type Workspace = (typeof workspaces)[number];
+export function canAccess(id: string, role: Role) {
+  return workspaces.find((w) => w.id === id)?.roles.includes(role) ?? false;
+}

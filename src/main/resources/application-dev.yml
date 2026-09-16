@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    password: ${DB_PASSWORD:}
+  flyway:
+    locations: classpath:db/migration,classpath:db/dev
+wallet:
+  public-base-url: ${PUBLIC_BASE_URL:http://localhost:8080}
+  browser:
+    allowed-origin: ${ADMIN_ORIGIN:http://localhost:5173}
+    secure-cookie: false
+  jwt-secret: ${JWT_SECRET:development-only-secret-at-least-32-bytes-change-me}
+  mock-provider-enabled: true
+  remittance:
+    rates: ${REMITTANCE_RATES:USD:BWP=13.500000}
+  bootstrap:
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD:local-admin-change-me}
+springdoc:
+  api-docs.enabled: true
+  swagger-ui:
+    enabled: true
+    persist-authorization: true
+    try-it-out-enabled: true

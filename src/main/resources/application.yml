@@ -1,0 +1,36 @@
+spring:
+  profiles:
+    default: dev
+  application:
+    name: poscloud-wallet
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/wallet?connectionTimeZone=UTC}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        type.preferred_uuid_jdbc_type: CHAR
+        jdbc.time_zone: UTC
+  flyway:
+    locations: classpath:db/migration
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+server:
+  error:
+    include-message: never
+  shutdown: graceful
+wallet:
+  jwt-secret: ${JWT_SECRET}
+  issuer: poscloud-wallet
+  mock-provider-enabled: false
+springdoc:
+  api-docs.enabled: false
+  swagger-ui.enabled: false
+management:
+  endpoints.web.exposure.include: health,info
+  endpoint.health.show-details: never

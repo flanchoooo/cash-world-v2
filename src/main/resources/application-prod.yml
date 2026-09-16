@@ -1,0 +1,22 @@
+spring:
+  flyway:
+    user: ${FLYWAY_USER}
+    password: ${FLYWAY_PASSWORD}
+  datasource:
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 20
+      connection-timeout: 5000
+wallet:
+  public-base-url: ${PUBLIC_BASE_URL}
+  browser:
+    allowed-origin: ${ADMIN_ORIGIN:}
+    secure-cookie: true
+  mock-provider-enabled: false
+  bootstrap:
+    username: ${ADMIN_USERNAME:}
+    password: ${ADMIN_PASSWORD:}
+  remittance:
+    rates: ${REMITTANCE_RATES:}
+server:
+  forward-headers-strategy: none

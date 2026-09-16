@@ -1,0 +1,310 @@
+{
+  "info": {
+    "_postman_id": "9d58cb61-b868-47fa-ae2e-e3af8d171add",
+    "name": "Poscloud External Wallet API",
+    "description": "Apidog/Postman collection for customer and agent wallet integrations. Run Login first; its test script stores accessToken and refreshToken automatically. Sales and reversals require a four-digit mobilePin and an Idempotency-Key. Set a new idempotencyKey for each new financial operation and reuse the same value only when retrying the exact same request.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "username", "value": "", "type": "string" },
+    { "key": "password", "value": "", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "refreshToken", "value": "", "type": "string" },
+    { "key": "mobilePin", "value": "", "type": "string" },
+    { "key": "productCode", "value": "ZETDC_USD", "type": "string" },
+    { "key": "customerReference", "value": "METER-123456", "type": "string" },
+    { "key": "transactionReference", "value": "", "type": "string" },
+    { "key": "idempotencyKey", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const response = pm.response.json();",
+                  "  pm.collectionVariables.set('accessToken', response.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', response.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/external/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "external", "login"]
+            },
+            "description": "Authenticates an ACTIVE CUSTOMER or AGENT. The response script saves both tokens as collection variables."
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const response = pm.response.json();",
+                  "  pm.collectionVariables.set('accessToken', response.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', response.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "refresh"]
+            },
+            "description": "Rotates the refresh token and stores the new access and refresh tokens."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "List Balances",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/external/balances",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "external", "balances"]
+            },
+            "description": "Returns all active wallet balances consolidated by currency."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List Allocated Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/external/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "external", "products"]
+            },
+            "description": "Returns products allocated to the authenticated customer through active predefined commission plans."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sales",
+      "item": [
+        {
+          "name": "Create Standard Sale",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('idempotencyKey')) {",
+                  "  pm.collectionVariables.set('idempotencyKey', pm.variables.replaceIn('{{$guid}}'));",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const response = pm.response.json();",
+                  "  pm.collectionVariables.set('transactionReference', response.transactionReference);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Idempotency-Key", "value": "{{idempotencyKey}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productCode\": \"{{productCode}}\",\n  \"customerReference\": \"{{customerReference}}\",\n  \"mobilePin\": \"{{mobilePin}}\",\n  \"amount\": 10.00,\n  \"creditSale\": false,\n  \"metadata\": {\n    \"channel\": \"apidog\",\n    \"requestId\": \"BILLER-REQ-1001\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/external/sales",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "external", "sales"]
+            },
+            "description": "Creates a normal wallet-funded product sale. Clear or replace idempotencyKey before starting a different sale."
+          }
+        },
+        {
+          "name": "Create Credit Sale",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('idempotencyKey')) {",
+                  "  pm.collectionVariables.set('idempotencyKey', pm.variables.replaceIn('{{$guid}}'));",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const response = pm.response.json();",
+                  "  pm.collectionVariables.set('transactionReference', response.transactionReference);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Idempotency-Key", "value": "{{idempotencyKey}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productCode\": \"{{productCode}}\",\n  \"customerReference\": \"{{customerReference}}\",\n  \"mobilePin\": \"{{mobilePin}}\",\n  \"amount\": 20.00,\n  \"creditSale\": true,\n  \"collectingAgentName\": \"Jane Collector\",\n  \"collectingAgentMobile\": \"0771112233\",\n  \"collectingAgentIdNumber\": \"12-345678-A-90\",\n  \"metadata\": {\n    \"channel\": \"apidog\",\n    \"route\": \"Harare North\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/external/sales",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "external", "sales"]
+            },
+            "description": "Creates a credit sale and records the collecting agent who owes the amount due. Clear or replace idempotencyKey before starting a different sale."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "List Transaction History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/external/transactions?offset=0&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "external", "transactions"],
+              "query": [
+                { "key": "offset", "value": "0" },
+                { "key": "limit", "value": "50" }
+              ]
+            },
+            "description": "Returns detailed sales in newest-first order. Limit must be between 1 and 200."
+          }
+        },
+        {
+          "name": "Get Transaction Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/external/transactions/{{transactionReference}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "external", "transactions", "{{transactionReference}}"]
+            }
+          }
+        },
+        {
+          "name": "Reverse Transaction",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('idempotencyKey')) {",
+                  "  pm.collectionVariables.set('idempotencyKey', pm.variables.replaceIn('{{$guid}}'));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Idempotency-Key", "value": "{{idempotencyKey}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer requested cancellation\",\n  \"mobilePin\": \"{{mobilePin}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/external/transactions/{{transactionReference}}/reverse",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "external", "transactions", "{{transactionReference}}", "reverse"]
+            },
+            "description": "Reverses a successful transaction once. Set a new idempotencyKey before sending the reversal."
+          }
+        }
+      ]
+    }
+  ]
+}
