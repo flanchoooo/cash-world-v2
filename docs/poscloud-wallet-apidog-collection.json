@@ -16,7 +16,7 @@
     ]
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "baseUrl", "value": "http://localhost:8088", "type": "string" },
     { "key": "username", "value": "", "type": "string" },
     { "key": "password", "value": "", "type": "string" },
     { "key": "accessToken", "value": "", "type": "string" },
@@ -118,7 +118,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "external", "balances"]
             },
-            "description": "Returns all active wallet balances consolidated by currency."
+            "description": "Returns each active customer wallet balance separately by wallet type and currency. For example, Airtime USD and Bill Payment USD are separate balances."
           }
         }
       ]

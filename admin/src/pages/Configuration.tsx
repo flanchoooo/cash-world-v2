@@ -22,6 +22,10 @@ export function Configuration({ user }: { user: User }) {
     queryKey: ["configuration", "currencies"],
     queryFn: () => api<Row[]>("/api/admin/currencies"),
   });
+  const walletTypes = useQuery({
+    queryKey: ["configuration", "wallet-types"],
+    queryFn: () => api<Row[]>("/api/admin/wallet-types"),
+  });
   const types = useQuery({
     queryKey: ["configuration", "transaction-types"],
     queryFn: () => api<Row[]>("/api/admin/transaction-types"),
@@ -40,6 +44,13 @@ export function Configuration({ user }: { user: User }) {
             currency:
               currencies.data?.find((c) => c.id === r.currencyId)?.code ??
               r.currencyId,
+          }
+        : {}),
+      ...(r.walletTypeId
+        ? {
+            walletType:
+              walletTypes.data?.find((t) => t.id === r.walletTypeId)?.code ??
+              r.walletTypeId,
           }
         : {}),
       ...(r.transactionTypeId

@@ -14,6 +14,7 @@ export type Field = {
     | "datetime-local"
     | "select"
     | "lookup"
+    | "checkboxes"
     | "file";
   required?: boolean;
   options?: string[];
@@ -75,6 +76,12 @@ export const lookup = (
     required,
     optionLabel,
   });
+export const checkboxes = (
+  name: string,
+  label: string,
+  source: string,
+  optionLabel?: (row: Row) => string,
+) => field(name, label, { type: "checkboxes", source, optionLabel });
 export const money = (name = "amount", label = "Amount", required = true) =>
   field(name, label, { type: "money", required });
 export const display = (v: unknown): string =>

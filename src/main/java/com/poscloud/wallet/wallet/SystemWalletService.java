@@ -22,6 +22,7 @@ public class SystemWalletService {
   private final AuditService audit;
   private final EntityManager entityManager;
   private final IdempotencyService json;
+  private final WalletTypeRepository walletTypes;
 
   @io.swagger.v3.oas.annotations.media.Schema(name = "SystemWalletServiceRequest")
   public record Request(
@@ -103,6 +104,7 @@ public class SystemWalletService {
   private void apply(Wallet e, Request r) {
     e.setWalletNumber(r.walletNumber());
     e.setCurrencyId(r.currencyId());
+    e.setWalletTypeId(walletTypes.findByCode(r.walletType().name()).orElseThrow(() -> new ApiException("INVALID_WALLET_TYPE")).getId());
     e.setWalletType(r.walletType());
     e.setName(r.name());
     e.setAllowNegativeBalance(r.allowNegativeBalance());

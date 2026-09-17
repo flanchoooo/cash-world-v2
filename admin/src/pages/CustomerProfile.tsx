@@ -14,6 +14,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type User } from "../lib/session";
 import {
   choice,
+  checkboxes,
   field,
   lookup,
   money,
@@ -97,7 +98,7 @@ export function CustomerProfile({
   const walletLabels = Object.fromEntries(
     activeWalletRows.map((wallet) => [
       String(wallet.walletNumber),
-      String(wallet.currency),
+      `${String(wallet.walletType ?? "Wallet")} · ${String(wallet.currency)}`,
     ]),
   );
   const firstWallet = walletOptions[0];
@@ -214,12 +215,23 @@ export function CustomerProfile({
     setSelectedAllocation(null);
     setAction({
       title: row ? "Edit product allocation" : "Allocate product",
-      path: `/api/admin/customer-product-allocations/customer/${encodeURIComponent(customerNumber)}${row ? `/${String(row.id)}` : ""}`,
+      path: row
+        ? `/api/admin/customer-product-allocations/customer/${encodeURIComponent(customerNumber)}/${String(row.id)}`
+        : `/api/admin/customer-product-allocations/customer/${encodeURIComponent(customerNumber)}/bulk`,
       method: row ? "PUT" : "POST",
-      fields: allocationFields(),
-      initial: row ?? {
-        status: "ACTIVE",
-      },
+      fields: row
+        ? allocationFields()
+        : [
+            checkboxes(
+              "commissionPlanIds",
+              "Products",
+              "/api/admin/product-commission-plans",
+              (plan) =>
+                `${String(plan.productName)} · ${String(plan.currency)} · ${String(plan.arrangementName)} (${String(plan.agentCommissionPercentage)}% agent / ${String(plan.platformCommissionPercentage)}% platform)`,
+            ),
+            choice("status", "Status", ["ACTIVE", "INACTIVE"]),
+          ],
+      initial: row ?? { commissionPlanIds: [], status: "ACTIVE" },
       note: "Commission values come from the predefined plan in Settings and cannot be entered manually here.",
     });
   };
@@ -331,7 +343,7 @@ export function CustomerProfile({
               {walletRows.map((wallet) => (
                 <div className="balance-card" key={String(wallet.id)}>
                   <div>
-                    <span>{String(wallet.currency)} balance</span>
+                    <span>{String(wallet.walletType ?? "Wallet")} · {String(wallet.currency)} balance</span>
                     <strong>{String(wallet.balance ?? "0.00")}</strong>
                   </div>
                 </div>
@@ -339,16 +351,6 @@ export function CustomerProfile({
             </div>
           ) : (
             <p className="profile-muted">No wallets found for this customer.</p>
-          )}
-          {!wallets.isPending && !wallets.isError && (
-            <DataTable
-              rows={walletRows}
-              columns={[
-                ["currency", "Currency"],
-                ["balance", "Balance"],
-                ["status", "Status"],
-              ]}
-            />
           )}
         </section>
       </div>
@@ -457,7 +459,6 @@ export function CustomerProfile({
           <DataTable
             rows={transactions.data ?? []}
             columns={[
-              ["transactionReference", "Reference"],
               ["transactionType", "Type"],
               ["currency", "Currency"],
               ["faceValue", "Amount"],

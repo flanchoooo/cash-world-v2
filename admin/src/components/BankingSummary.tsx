@@ -44,7 +44,7 @@ export function BankingSummary() {
         ))}
       </div>
       <div className="records-section-heading">
-        <h2>Customer balances by currency</h2>
+        <h2>Customer balances by wallet type and currency</h2>
         <p>
           Current customer wallet balances. System and settlement accounts are
           excluded.
@@ -53,6 +53,7 @@ export function BankingSummary() {
       <DataTable
         rows={q.data.balances}
         columns={[
+          ["walletType", "Wallet type"],
           ["currency", "Currency"],
           ["walletCount", "Customer wallets"],
           ["balance", "Balance"],

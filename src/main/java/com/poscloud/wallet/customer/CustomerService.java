@@ -4,9 +4,14 @@ import com.poscloud.wallet.audit.AuditService;
 import com.poscloud.wallet.auth.AccessService;
 import com.poscloud.wallet.auth.User;
 import com.poscloud.wallet.auth.UserRepository;
+import com.poscloud.wallet.currency.CurrencyRepository;
+import com.poscloud.wallet.wallet.Wallet;
+import com.poscloud.wallet.wallet.WalletRepository;
+import com.poscloud.wallet.wallet.WalletTypeRepository;
 import com.poscloud.wallet.common.*;
 import com.poscloud.wallet.common.Types.*;
 import jakarta.validation.constraints.*;
+import java.util.List;
 import java.util.UUID;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -26,6 +31,9 @@ public class CustomerService {
   private final JdbcTemplate jdbc;
   private final UserRepository users;
   private final PasswordEncoder passwords;
+  private final WalletRepository wallets;
+  private final CurrencyRepository currencies;
+  private final WalletTypeRepository walletTypes;
 
   @io.swagger.v3.oas.annotations.media.Schema(name = "CustomerServiceRequest")
   public record Request(
@@ -121,9 +129,30 @@ public class CustomerService {
     user.setRole(Role.CUSTOMER);
     user.setStatus(UserStatus.ACTIVE);
     users.save(user);
+    createDefaultWallets(c);
     audit.record("CUSTOMER_REGISTERED", "customers", c.getId());
     audit.record("CUSTOMER_LOGIN_CREATED", "users", user.getId());
     return View.of(c, user.getUsername(), temporaryPassword);
+  }
+
+  private void createDefaultWallets(Customer customer) {
+    for (var typeCode : List.of("AIRTIME", "WALLET", "BILL_PAYMENT")) {
+      var type = walletTypes.findByCode(typeCode).orElseThrow(() -> new ApiException("INVALID_WALLET_TYPE"));
+      ApiException.require(type.getStatus() == Status.ACTIVE && type.getScope() == WalletScope.CUSTOMER, "INVALID_WALLET_TYPE");
+      for (var currencyCode : List.of("USD", "ZWG")) {
+        var currency = currencies.findByCode(currencyCode).orElseThrow(() -> new ApiException("INVALID_CURRENCY"));
+        ApiException.require(currency.getStatus() == Status.ACTIVE, "INVALID_CURRENCY");
+        var wallet = new Wallet();
+        wallet.setWalletNumber("WAL" + UUID.randomUUID().toString().replace("-", ""));
+        wallet.setCustomerId(customer.getId());
+        wallet.setWalletTypeId(type.getId());
+        wallet.setWalletType(WalletType.CUSTOMER);
+        wallet.setCurrencyId(currency.getId());
+        wallet.setName(type.getName() + " " + currency.getCode() + " Wallet");
+        wallet.setStatus(WalletStatus.ACTIVE);
+        wallets.save(wallet);
+      }
+    }
   }
 
   @Transactional

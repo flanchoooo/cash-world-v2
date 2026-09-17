@@ -199,6 +199,51 @@ function Lookup({
     </div>
   );
 }
+function CheckboxLookup({
+  field,
+  value,
+  onChange,
+}: {
+  field: Field;
+  value: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const q = useQuery({
+    queryKey: ["checkbox-lookup", field.source],
+    queryFn: () => api<Row[]>(field.source!),
+  });
+  const selected = new Set(value);
+  return (
+    <div className="checkbox-lookup">
+      {q.isPending ? <small>Loading options…</small> : null}
+      {q.isError ? <small role="alert">Options unavailable.</small> : null}
+      {(q.data ?? []).map((row) => {
+        const id = String(row[field.valueKey ?? "id"]);
+        return (
+          <label className="checkbox-option" key={id}>
+            <input
+              type="checkbox"
+              checked={selected.has(id)}
+              onChange={(event) => {
+                const next = new Set(selected);
+                if (event.target.checked) next.add(id);
+                else next.delete(id);
+                onChange([...next]);
+              }}
+            />
+            <span>
+              {field.optionLabel
+                ? field.optionLabel(row)
+                : [row.productName, row.currency, row.arrangementName]
+                    .filter(Boolean)
+                    .join(" · ") || String(row.name ?? row.code ?? id)}
+            </span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
 export function ActionDialog({
   action,
   user,
@@ -606,7 +651,13 @@ export function ActionDialog({
                     {f.label}
                     {!f.required && <small>Optional</small>}
                   </span>
-                  {f.type === "lookup" ? (
+                  {f.type === "checkboxes" ? (
+                    <CheckboxLookup
+                      field={f}
+                      value={Array.isArray(values[f.name]) ? (values[f.name] as string[]) : []}
+                      onChange={(v) => setValues({ ...values, [f.name]: v })}
+                    />
+                  ) : f.type === "lookup" ? (
                     <Lookup
                       field={f}
                       value={String(values[f.name] ?? "")}

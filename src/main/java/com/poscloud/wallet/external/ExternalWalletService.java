@@ -41,7 +41,7 @@ public class ExternalWalletService {
   private final ReversalService reversals;
   private final ObjectMapper json;
 
-  public record Balance(String currency, BigDecimal availableBalance) {}
+  public record Balance(String walletType, String currency, BigDecimal availableBalance) {}
 
   public record SaleRequest(
       @NotBlank @Size(max = 60) String productCode,
@@ -92,10 +92,15 @@ public class ExternalWalletService {
         .forEach(
             w ->
                 totals.merge(
-                    wallets.currency(w.getCurrencyId()).getCode(),
+                    w.getWalletTypeId() + ":" + wallets.currency(w.getCurrencyId()).getCode(),
                     w.getBalance(),
                     BigDecimal::add));
-    return totals.entrySet().stream().map(e -> new Balance(e.getKey(), e.getValue())).toList();
+    return totals.entrySet().stream()
+        .map(e -> {
+          var parts = e.getKey().split(":", 2);
+          return new Balance(wallets.walletType(UUID.fromString(parts[0])).getCode(), parts[1], e.getValue());
+        })
+        .toList();
   }
 
   @Transactional(readOnly = true)
@@ -127,7 +132,7 @@ public class ExternalWalletService {
     ApiException.require(debit.signum() >= 0, "INVALID_COMMISSION_SPLIT");
     validateCredit(request);
     var wallet = walletRepository.findByCustomerId(customerId).stream()
-        .filter(w -> w.getCurrencyId().equals(product.getCurrencyId()) && w.getWalletType() == WalletType.CUSTOMER)
+        .filter(w -> w.getCurrencyId().equals(product.getCurrencyId()) && w.getWalletTypeId().equals(product.getWalletTypeId()) && w.getWalletType() == WalletType.CUSTOMER)
         .findFirst().orElseThrow(() -> new ApiException("WALLET_NOT_FOUND"));
     wallets.usable(wallet);
     var metadata = new LedgerService.Metadata(

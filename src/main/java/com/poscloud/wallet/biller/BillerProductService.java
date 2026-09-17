@@ -29,13 +29,26 @@ public class BillerProductService {
       @NotBlank @Size(max = 200) String code,
       @NotBlank @Size(max = 200) String name,
       @NotNull UUID currencyId,
+      UUID walletTypeId,
       @NotNull UUID settlementWalletId,
       @NotNull RewardMode agentRewardMode,
       @NotNull RewardType agentRewardType,
       @NotNull @DecimalMin("0") @Digits(integer = 15, fraction = 4) BigDecimal agentRewardValue,
       @DecimalMin("0") @Digits(integer = 15, fraction = 4) BigDecimal minimumCommission,
       @DecimalMin("0") @Digits(integer = 15, fraction = 4) BigDecimal maximumCommission,
-      @NotNull Status status) {}
+      @NotNull Status status) {
+    private static final UUID DEFAULT_WALLET_TYPE = UUID.fromString("11000000-0000-0000-0000-000000000001");
+
+    public Request(
+        UUID billerId, String code, String name, UUID currencyId, UUID settlementWalletId,
+        RewardMode agentRewardMode, RewardType agentRewardType, BigDecimal agentRewardValue,
+        BigDecimal minimumCommission, BigDecimal maximumCommission, Status status) {
+      this(billerId, code, name, currencyId, DEFAULT_WALLET_TYPE, settlementWalletId,
+          agentRewardMode, agentRewardType, agentRewardValue, minimumCommission, maximumCommission, status);
+    }
+
+    @Override public UUID walletTypeId() { return walletTypeId == null ? DEFAULT_WALLET_TYPE : walletTypeId; }
+  }
 
   @io.swagger.v3.oas.annotations.media.Schema(name = "BillerProductServiceView")
   public record View(
@@ -44,6 +57,7 @@ public class BillerProductService {
       String code,
       String name,
       UUID currencyId,
+      UUID walletTypeId,
       UUID settlementWalletId,
       RewardMode agentRewardMode,
       RewardType agentRewardType,
@@ -59,6 +73,7 @@ public class BillerProductService {
         e.getCode(),
         e.getName(),
         e.getCurrencyId(),
+        e.getWalletTypeId(),
         e.getSettlementWalletId(),
         e.getAgentRewardMode(),
         e.getAgentRewardType(),
@@ -117,6 +132,9 @@ public class BillerProductService {
     e.setCode(r.code());
     e.setName(r.name());
     e.setCurrencyId(r.currencyId());
+    var walletType = entityManager.find(com.poscloud.wallet.wallet.WalletTypeDefinition.class, r.walletTypeId());
+    ApiException.require(walletType != null && walletType.getScope() == WalletScope.CUSTOMER && walletType.getStatus() == Status.ACTIVE, "INVALID_WALLET_TYPE");
+    e.setWalletTypeId(r.walletTypeId());
     e.setSettlementWalletId(r.settlementWalletId());
     e.setAgentRewardMode(r.agentRewardMode());
     e.setAgentRewardType(r.agentRewardType());

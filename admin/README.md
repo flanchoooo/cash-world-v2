@@ -4,7 +4,7 @@ React + TypeScript + Vite, Tailwind CSS, React Router, TanStack Query, React Hoo
 
 ## Run locally
 
-Use Node 22.12+ and the updated Java 17 backend. The frontend runs at **http://localhost:5173**, with `/api` proxied to **http://localhost:8080**.
+Use Node 22.12+ and the updated Java 17 backend. The frontend runs at **http://localhost:8089**, with `/api` proxied to **http://localhost:8088**.
 
 ```sh
 cd admin
@@ -12,7 +12,7 @@ npm ci
 npm run dev
 ```
 
-Use your backend account. No password is embedded in React. Development browser authentication trusts exactly `http://localhost:5173`; use `localhost`, not `127.0.0.1`. Set backend `ADMIN_ORIGIN` to use a different frontend origin. Copy `.env.example` to `.env` and set `BACKEND_URL` if the backend runs elsewhere. This is a server-side development setting; it is not exposed as a browser secret.
+Use your backend account. No password is embedded in React. Development browser authentication trusts exactly `http://localhost:8089`; use `localhost`, not `127.0.0.1`. Set backend `ADMIN_ORIGIN` to use a different frontend origin. Copy `.env.example` to `.env` and set `BACKEND_URL` if the backend runs elsewhere. This is a server-side development setting; it is not exposed as a browser secret.
 
 ```sh
 npm test
@@ -52,7 +52,7 @@ All balance movements continue through LedgerService. Reversal creates compensat
 
 ## Deployment
 
-From the repository root, `docker compose up --build` starts the development MySQL, backend and Nginx frontend. Open **http://localhost:8088**. The Compose `ADMIN_ORIGIN` defaults to that URL. If changing `ADMIN_PORT`, also change `ADMIN_ORIGIN`. Override `MYSQL_PORT` and `APP_PORT` if existing local services occupy their defaults.
+From the repository root, `docker compose up --build` starts the development MySQL, backend and Nginx frontend. Open **http://localhost:8089**. The backend listens on **http://localhost:8088**. The Compose `ADMIN_ORIGIN` defaults to the admin URL. If changing `ADMIN_PORT`, also change `ADMIN_ORIGIN`. Override `MYSQL_PORT` and `APP_PORT` if existing local services occupy their defaults.
 
 For production, use [the deployment guide](../docs/admin-deployment.md) and `compose.production.yml`. Production hosting has not been provisioned; it needs the target server, HTTPS domain, database and secrets. Nginx serves the SPA and proxies `/api` to the backend, preserving the browser Origin and authorization headers.
 

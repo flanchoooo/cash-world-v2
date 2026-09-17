@@ -214,7 +214,8 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
         ...(staff
           ? [lookup("customerId", "Customer", "/api/admin/workspace/customers")]
           : [field("customerId", "Corporate customer", { disabled: true })]),
-        choice("currency", "Currency", currencies),
+        lookup("walletTypeId", "Wallet type", "/api/admin/wallet-types"),
+        lookup("currencyId", "Currency", "/api/admin/currencies"),
         field("name", "Wallet name"),
       ],
       initial: staff ? {} : { customerId: user.customerId },
@@ -539,7 +540,13 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
       >
         {selected && (
           <>
-            <Details row={{ ...selected, ...detail.data }} />
+            <Details
+              row={Object.fromEntries(
+                Object.entries({ ...selected, ...detail.data }).filter(
+                  ([key]) => key !== "id",
+                ),
+              )}
+            />
             {detail.isError && <p role="alert">{detail.error.message}</p>}
             {Array.isArray(detail.data?.entries) && (
               <>
@@ -773,18 +780,12 @@ function CustomerOnboarding({
         "/api/customers/" + (corporate ? "corporates" : "individuals"),
         { method: "POST", body: JSON.stringify(values) },
       );
-      const wallets = await Promise.all(
-        ["USD", "ZWG"].map((currency) =>
-          api<Row>("/api/wallets", {
-            method: "POST",
-            body: JSON.stringify({
-              customerId: customer.id,
-              currency,
-              name: currency + " wallet",
-            }),
-          }),
-        ),
+      const walletPage = await api<{ items: Row[] }>(
+        "/api/admin/workspace/wallets?search=" +
+          encodeURIComponent(String(customer.customerNumber)) +
+          "&page=0&size=100",
       );
+      const wallets = walletPage.items;
       setResult({ customer, wallets });
       await onDone();
     } catch (e) {
@@ -812,13 +813,14 @@ function CustomerOnboarding({
         <>
           <p className="operation-success">
             Customer {String(result.customer.customerNumber)} was created with
-            USD and ZWG wallets.
+            Airtime, Wallet, and Bill Payment wallets in USD and ZWG.
           </p>
           <Details row={result.customer} />
           <h3>Wallets</h3>
           <DataTable
             rows={result.wallets}
             columns={[
+              ["walletType", "Wallet type"],
               ["currency", "Currency"],
               ["walletNumber", "Wallet"],
               ["balance", "Opening balance"],
@@ -846,7 +848,7 @@ function CustomerOnboarding({
               <p>
                 Confirm the customer details and wallet setup before creating.
               </p>
-              <Details row={{ ...values, wallets: "USD wallet, ZWG wallet" }} />
+              <Details row={{ ...values, wallets: "Configured wallet types and active currencies" }} />
             </>
           ) : (
             <>
@@ -869,7 +871,7 @@ function CustomerOnboarding({
                 ))}
               </div>
               <p className="operation-note">
-                Two wallets will be created automatically: USD and ZWG.
+                Six wallets will be created automatically: Airtime, Wallet, and Bill Payment in USD and ZWG.
               </p>
             </>
           )}

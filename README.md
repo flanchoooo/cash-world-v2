@@ -68,7 +68,7 @@ docker build -f Dockerfile.runtime -t poscloud-wallet:local .
 
 ## Authentication and ownership
 
-`POST /api/auth/login` returns a 15-minute JWT access token and a one-use, seven-day refresh token. Send `Authorization: Bearer <accessToken>`. Refresh tokens are random secrets stored only as SHA-256 hashes and rotated under a row lock. BCrypt hashes user passwords. Blocking a user revokes access through a database status check on every authenticated request.
+`POST /api/auth/login` returns a 24-hour JWT access token and a one-use, seven-day refresh token. Send `Authorization: Bearer <accessToken>`. Refresh tokens are random secrets stored only as SHA-256 hashes and rotated under a row lock. BCrypt hashes user passwords. Blocking a user revokes access through a database status check on every authenticated request.
 
 Customer onboarding is staff-driven. Users authenticate; customers own funds. Public anonymous registration is deliberately not enabled. A super administrator registers users and assigns customers. A corporate administrator can register `CORPORATE_USER` users only for their own corporate customer. All members of one corporate customer share its wallets in this MVP.
 

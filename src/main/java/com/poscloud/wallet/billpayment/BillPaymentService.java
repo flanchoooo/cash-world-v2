@@ -72,10 +72,10 @@ public class BillPaymentService {
     var w = wallets.find(r.walletNumber());
     wallets.owned(w);
     wallets.usable(w);
-    ApiException.require(w.getWalletType() == WalletType.CUSTOMER, "INVALID_WALLET_TYPE");
     var customer = customers.findById(w.getCustomerId()).orElseThrow();
     var p = billers.product(r.productCode());
     var b = billers.biller(p);
+    ApiException.require(w.getWalletTypeId().equals(p.getWalletTypeId()), "INVALID_WALLET_TYPE");
     ApiException.require(w.getCurrencyId().equals(p.getCurrencyId()), "INVALID_CURRENCY");
     var currency = wallets.currency(w.getCurrencyId());
     Money.amount(r.amount(), currency.getDecimalPlaces());

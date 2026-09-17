@@ -41,9 +41,9 @@ public class AdministrationService {
               null);
       case "wallets" ->
           new Definition(
-              "w.id,w.wallet_number walletNumber,w.customer_id customerId,c.customer_number customerNumber,w.name,w.wallet_type walletType,cu.code currency,w.balance,w.status,w.created_at createdAt",
-              "wallets w join currencies cu on cu.id=w.currency_id left join customers c on c.id=w.customer_id",
-              "concat_ws(' ',w.wallet_number,w.name,c.customer_number)",
+              "w.id,w.wallet_number walletNumber,w.customer_id customerId,c.customer_number customerNumber,w.name,wt.id walletTypeId,wt.code walletType,cu.code currency,w.balance,w.status,w.created_at createdAt",
+              "wallets w join currencies cu on cu.id=w.currency_id join wallet_types wt on wt.id=w.wallet_type_id left join customers c on c.id=w.customer_id",
+              "concat_ws(' ',w.wallet_number,w.name,wt.code,wt.name,c.customer_number)",
               "w.status",
               "w.customer_id");
       case "users" ->
@@ -175,11 +175,11 @@ public class AdministrationService {
     String own = corp ? " where w.customer_id=?" : "";
     var balances =
         jdbc.queryForList(
-            "select c.code currency,count(*) walletCount,sum(w.balance) balance from wallets w join currencies c on c.id=w.currency_id"
+            "select wt.code walletType,c.code currency,count(*) walletCount,sum(w.balance) balance from wallets w join currencies c on c.id=w.currency_id join wallet_types wt on wt.id=w.wallet_type_id"
                 + (corp
-                    ? " where w.customer_id=? and w.wallet_type='CUSTOMER'"
-                    : " where w.wallet_type='CUSTOMER'")
-                + " group by c.code order by c.code",
+                    ? " where w.customer_id=? and wt.scope='CUSTOMER'"
+                    : " where wt.scope='CUSTOMER'")
+                + " group by c.code,wt.code order by c.code,wt.code",
             args);
     long wc = jdbc.queryForObject("select count(*) from wallets w" + own, Long.class, args);
     long cc = corp ? 1 : jdbc.queryForObject("select count(*) from customers", Long.class);

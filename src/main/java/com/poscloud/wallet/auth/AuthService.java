@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+  private static final long ACCESS_TOKEN_LIFETIME_SECONDS = 86_400;
   private final UserRepository users;
   private final jakarta.persistence.EntityManager entityManager;
   private final RefreshTokenRepository refreshTokens;
@@ -175,7 +176,7 @@ public class AuthService {
             .issuer(issuer)
             .subject(u.getId().toString())
             .issuedAt(now)
-            .expiresAt(now.plusSeconds(900))
+            .expiresAt(now.plusSeconds(ACCESS_TOKEN_LIFETIME_SECONDS))
             .claim("kind", "access")
             .claim("ver", u.getTokenVersion())
             .build();
@@ -191,7 +192,7 @@ public class AuthService {
     refresh.setTokenHash(hash(raw));
     refresh.setExpiresAt(now.plusSeconds(604800));
     refreshTokens.save(refresh);
-    return new Tokens(token, raw, 900, UserView.of(u));
+    return new Tokens(token, raw, ACCESS_TOKEN_LIFETIME_SECONDS, UserView.of(u));
   }
 
   public static String hash(String s) {

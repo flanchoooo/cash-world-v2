@@ -10,11 +10,11 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: {
         "/api": {
-          target: env.BACKEND_URL || "http://localhost:8080",
+          target: env.BACKEND_URL || "http://localhost:8088",
           changeOrigin: false,
         },
         "/actuator/health": {
-          target: env.BACKEND_URL || "http://localhost:8080",
+          target: env.BACKEND_URL || "http://localhost:8088",
         },
       },
     },
@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: {
         "/api": {
-          target: env.BACKEND_URL || "http://localhost:8080",
+          target: env.BACKEND_URL || "http://localhost:8088",
           changeOrigin: false,
         },
       },

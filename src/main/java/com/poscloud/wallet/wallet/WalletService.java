@@ -19,20 +19,30 @@ public class WalletService {
   private final WalletRepository wallets;
   private final CurrencyRepository currencies;
   private final CustomerRepository customers;
+  private final WalletTypeRepository walletTypes;
   private final AccessService access;
   private final AuditService audit;
 
   @io.swagger.v3.oas.annotations.media.Schema(name = "WalletServiceCreate")
   public record Create(
-      UUID customerId, @NotBlank String currency, @NotBlank @Size(max = 200) String name) {}
+      UUID customerId,
+      UUID walletTypeId,
+      UUID currencyId,
+      String currency,
+      @NotBlank @Size(max = 200) String name) {
+    public Create(UUID customerId, String currency, String name) {
+      this(customerId, null, null, currency, name);
+    }
+  }
 
   @io.swagger.v3.oas.annotations.media.Schema(name = "WalletServiceView")
   public record View(
       UUID id,
       String walletNumber,
       UUID customerId,
+      UUID walletTypeId,
       String currency,
-      WalletType walletType,
+      String walletType,
       String name,
       BigDecimal balance,
       boolean allowNegativeBalance,
@@ -48,6 +58,10 @@ public class WalletService {
     var c = currencies.findById(id).orElseThrow(() -> new ApiException("INVALID_CURRENCY"));
     ApiException.require(c.getStatus() == Status.ACTIVE, "INVALID_CURRENCY");
     return c;
+  }
+
+  public WalletTypeDefinition walletType(UUID id) {
+    return walletTypes.findById(id).orElseThrow(() -> new ApiException("INVALID_WALLET_TYPE"));
   }
 
   public Wallet system(String prefix, UUID currency) {
@@ -74,18 +88,26 @@ public class WalletService {
   public View create(Create r) {
     access.customer(r.customerId());
     ApiException.require(r.customerId() != null, "CUSTOMER_REQUIRED");
+    ApiException.require(r.currencyId() != null || (r.currency() != null && !r.currency().isBlank()), "CURRENCY_REQUIRED");
     var c =
         customers
             .findById(r.customerId())
             .orElseThrow(() -> new ApiException("CUSTOMER_NOT_FOUND"));
     ApiException.require(c.getStatus() == CustomerStatus.ACTIVE, "CUSTOMER_BLOCKED");
-    var currency =
-        currencies.findByCode(r.currency()).orElseThrow(() -> new ApiException("INVALID_CURRENCY"));
+    var currency = r.currencyId() != null
+        ? currencies.findById(r.currencyId()).orElseThrow(() -> new ApiException("INVALID_CURRENCY"))
+        : currencies.findByCode(r.currency()).orElseThrow(() -> new ApiException("INVALID_CURRENCY"));
     ApiException.require(currency.getStatus() == Status.ACTIVE, "INVALID_CURRENCY");
+    var type = r.walletTypeId() == null
+        ? walletTypes.findByCode("CUSTOMER").orElseThrow(() -> new ApiException("INVALID_WALLET_TYPE"))
+        : walletTypes.findById(r.walletTypeId()).orElseThrow(() -> new ApiException("INVALID_WALLET_TYPE"));
+    ApiException.require(type.getStatus() == Status.ACTIVE && type.getScope() == WalletScope.CUSTOMER, "INVALID_WALLET_TYPE");
+    ApiException.require(wallets.findByCustomerIdAndWalletTypeIdAndCurrencyId(c.getId(), type.getId(), currency.getId()).isEmpty(), "WALLET_EXISTS");
     var w = new Wallet();
     w.setWalletNumber("WAL" + UUID.randomUUID().toString().replace("-", ""));
     w.setCustomerId(c.getId());
     w.setCurrencyId(currency.getId());
+    w.setWalletTypeId(type.getId());
     w.setWalletType(WalletType.CUSTOMER);
     w.setName(r.name());
     w.setStatus(WalletStatus.ACTIVE);
@@ -99,8 +121,9 @@ public class WalletService {
         w.getId(),
         w.getWalletNumber(),
         w.getCustomerId(),
+        w.getWalletTypeId(),
         currencies.findById(w.getCurrencyId()).orElseThrow().getCode(),
-        w.getWalletType(),
+        walletTypes.findById(w.getWalletTypeId()).orElseThrow().getCode(),
         w.getName(),
         w.getBalance(),
         w.isAllowNegativeBalance(),

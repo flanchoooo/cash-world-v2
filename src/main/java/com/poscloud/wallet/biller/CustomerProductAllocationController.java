@@ -37,6 +37,13 @@ public class CustomerProductAllocationController {
     return service.createForCustomer(customerNumber, request);
   }
 
+  @PostMapping("/customer/{customerNumber}/bulk")
+  public CustomerProductAllocationService.BulkView allocateManyToCustomer(
+      @PathVariable String customerNumber,
+      @Valid @RequestBody CustomerProductAllocationService.BulkRequest request) {
+    return service.createManyForCustomer(customerNumber, request);
+  }
+
   @PutMapping("/customer/{customerNumber}/{id}")
   public CustomerProductAllocationService.View updateCustomerAllocation(
       @PathVariable String customerNumber,

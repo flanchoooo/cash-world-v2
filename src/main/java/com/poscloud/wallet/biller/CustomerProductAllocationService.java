@@ -6,6 +6,7 @@ import com.poscloud.wallet.common.*;
 import com.poscloud.wallet.common.Types.Status;
 import com.poscloud.wallet.currency.CurrencyRepository;
 import com.poscloud.wallet.customer.CustomerRepository;
+import com.poscloud.wallet.wallet.WalletTypeRepository;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.util.*;
@@ -25,10 +26,23 @@ public class CustomerProductAllocationService {
   private final CurrencyRepository currencies;
   private final AccessService access;
   private final AuditService audit;
+  private final WalletTypeRepository walletTypes;
 
   public record CustomerRequest(
       @NotNull UUID commissionPlanId,
       @NotNull Status status) {}
+
+  public record BulkRequest(@NotEmpty List<@NotNull UUID> commissionPlanIds, @NotNull Status status) {}
+  public record BulkView(List<View> allocations) {}
+
+  public BulkView createManyForCustomer(String customerNumber, BulkRequest request) {
+    access.requireStaff();
+    var result = request.commissionPlanIds().stream()
+        .distinct()
+        .map(id -> createForCustomer(customerNumber, new CustomerRequest(id, request.status())))
+        .toList();
+    return new BulkView(result);
+  }
 
   public record View(
       UUID id,
@@ -40,6 +54,7 @@ public class CustomerProductAllocationService {
       String productName,
       String biller,
       String currency,
+      String walletType,
       String arrangementName,
       BigDecimal totalCommissionPercentage,
       BigDecimal agentCommissionPercentage,
@@ -151,10 +166,12 @@ public class CustomerProductAllocationService {
     var product = products.findById(a.getBillerProductId()).orElseThrow();
     var biller = billers.findById(product.getBillerId()).orElseThrow();
     var currency = currencies.findById(product.getCurrencyId()).orElseThrow();
+    var walletType = walletTypes.findById(product.getWalletTypeId()).orElseThrow();
     return new View(
         a.getId(), a.getCustomerId(), customer.getCustomerNumber(), a.getCommissionPlanId(),
         a.getBillerProductId(),
         product.getCode(), product.getName(), biller.getName(), currency.getCode(),
+        walletType.getCode(),
         a.getArrangementName(), a.getTotalCommissionPercentage(),
         a.getAgentCommissionPercentage(), a.getPlatformCommissionPercentage(), a.getStatus());
   }

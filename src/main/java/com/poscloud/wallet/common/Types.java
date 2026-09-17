@@ -47,6 +47,13 @@ public final class Types {
     INACTIVE
   }
 
+  public enum WalletScope {
+    CUSTOMER,
+    BILLER,
+    SYSTEM
+  }
+
+  /** Legacy wallet classification retained for transaction compatibility. */
   public enum WalletType {
     CUSTOMER,
     BILLER,

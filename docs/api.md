@@ -31,6 +31,12 @@ All endpoints require a bearer token except login, refresh, health and developme
 | GET | `/api/admin/currencies/{id}` |
 | POST | `/api/admin/currencies/{id}/activate` |
 | POST | `/api/admin/currencies/{id}/deactivate` |
+| POST | `/api/admin/wallet-types` |
+| PUT | `/api/admin/wallet-types/{id}` |
+| GET | `/api/admin/wallet-types` |
+| GET | `/api/admin/wallet-types/{id}` |
+| POST | `/api/admin/wallet-types/{id}/activate` |
+| POST | `/api/admin/wallet-types/{id}/deactivate` |
 | POST | `/api/customers/individuals` |
 | POST | `/api/customers/corporates` |
 | GET | `/api/customers/{number}` |
@@ -80,7 +86,9 @@ Create an individual with `firstName`, `lastName`, and `mobileNumber`. Create a 
 Create a wallet:
 
 ```json
-{"customerId":"<UUID>","currency":"USD","name":"Personal USD"}
+{"customerId":"<UUID>","walletTypeId":"<WALLET TYPE UUID>","currencyId":"<USD UUID>","name":"Personal USD"}
+
+Creating a customer automatically creates six zero-balance wallets: Airtime USD/ZWG, Wallet USD/ZWG, and Bill Payment USD/ZWG. Additional active currencies remain available for manual wallet creation.
 ```
 
 Register a customer user as SUPER_ADMIN:

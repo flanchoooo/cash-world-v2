@@ -19,6 +19,25 @@ export const configurations: {
   initial: Record<string, unknown>;
 }[] = [
   {
+    id: "wallet-types",
+    name: "Wallet types",
+    adminOnly: true,
+    columns: [
+      ["code", "Code"],
+      ["name", "Name"],
+      ["scope", "Scope"],
+      ["status", "Status"],
+    ],
+    fields: [
+      field("code", "Code", { help: "Unique code; it cannot change after creation." }),
+      field("name", "Name"),
+      optional("description", "Description"),
+      choice("scope", "Scope", ["CUSTOMER", "BILLER", "SYSTEM"]),
+      status,
+    ],
+    initial: { scope: "CUSTOMER", status: "ACTIVE" },
+  },
+  {
     id: "currencies",
     name: "Currencies",
     adminOnly: true,
@@ -174,6 +193,7 @@ export const configurations: {
     columns: [
       ["code", "Code"],
       ["name", "Name"],
+      ["walletType", "Wallet type"],
       ["agentRewardMode", "Reward mode"],
       ["agentRewardValue", "Reward value"],
       ["status", "Status"],
@@ -183,6 +203,7 @@ export const configurations: {
       field("code", "Code"),
       field("name", "Name"),
       currency,
+      lookup("walletTypeId", "Wallet type", "/api/admin/wallet-types"),
       settlement,
       choice("agentRewardMode", "Agent reward mode", [
         "NONE",

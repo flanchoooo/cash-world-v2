@@ -17,6 +17,9 @@ public class Wallet extends BaseEntity {
   private UUID customerId;
   private UUID currencyId;
 
+  @Column(name = "wallet_type_id", nullable = false)
+  private UUID walletTypeId;
+
   @Enumerated(EnumType.STRING)
   private WalletType walletType;
 

@@ -1,0 +1,7 @@
+UPDATE biller_products p
+JOIN billers b ON b.id = p.biller_id
+SET p.wallet_type_id = CASE
+  WHEN b.category = 'AIRTIME' THEN '11200000-0000-0000-0000-000000000001'
+  ELSE '11200000-0000-0000-0000-000000000003'
+END
+WHERE p.wallet_type_id = '11000000-0000-0000-0000-000000000001';

@@ -17,6 +17,7 @@ public class BillerProduct extends BaseEntity {
   private String code;
   private String name;
   private UUID currencyId;
+  private UUID walletTypeId;
   private UUID settlementWalletId;
 
   @Enumerated(EnumType.STRING)

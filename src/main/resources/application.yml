@@ -21,6 +21,7 @@ spring:
     deserialization:
       fail-on-unknown-properties: true
 server:
+  port: ${SERVER_PORT:8088}
   error:
     include-message: never
   shutdown: graceful
