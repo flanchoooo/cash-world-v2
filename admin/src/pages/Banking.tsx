@@ -21,16 +21,16 @@ import {
 import { Dialog } from "../components/Dialog";
 import { workspaces } from "../lib/workspaces";
 const customerFields = [
-  field("firstName", "First name"),
-  field("lastName", "Last name"),
-  field("nationalId", "National ID", { required: false }),
-  field("mobileNumber", "Mobile number"),
-  field("email", "Email", { type: "email", required: false }),
-  field("address", "Address", { required: false }),
+  field("firstName", "First name", { maxLength: 100 }),
+  field("lastName", "Last name", { maxLength: 100 }),
+  field("nationalId", "National ID", { required: false, maxLength: 100 }),
+  field("mobileNumber", "Mobile number", { maxLength: 40 }),
+  field("email", "Email", { type: "email", required: false, maxLength: 254 }),
+  field("address", "Address", { required: false, maxLength: 500 }),
 ];
 const corporateFields = [
-  field("companyName", "Company name"),
-  field("registrationNumber", "Registration number"),
+  field("companyName", "Company name", { maxLength: 200 }),
+  field("registrationNumber", "Registration number", { maxLength: 100 }),
   ...customerFields.slice(3),
 ];
 const walletLookup = (name = "walletNumber", label = "Wallet") =>
@@ -86,6 +86,7 @@ const columns: Record<string, [string, string][]> = {
     ["username", "Username"],
     ["customerNumber", "Customer"],
     ["role", "Role"],
+    ["mobilePinConfigured", "Mobile PIN"],
     ["status", "Status"],
   ],
   audit: [
@@ -226,10 +227,12 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
       title: "Create user",
       path: "/api/auth/register",
       fields: [
-        field("username", "Username"),
+        field("username", "Username", { maxLength: 100 }),
         field("password", "Temporary password", {
           type: "password",
-          help: "At least 12 characters; share through your approved secure channel.",
+          minLength: 8,
+          maxLength: 72,
+          help: "Use 8 to 72 characters and share through your approved secure channel.",
         }),
         ...(staff
           ? [
@@ -253,8 +256,22 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
               field("customerId", "Corporate customer", { disabled: true }),
               choice("role", "Role", ["CORPORATE_USER"]),
             ]),
-        field("mobileNumber", "Mobile", { required: false }),
-        field("email", "Email", { type: "email", required: false }),
+        field("mobileNumber", "Mobile", { required: false, maxLength: 40 }),
+        field("email", "Email", {
+          type: "email",
+          required: false,
+          maxLength: 254,
+        }),
+        field("mobilePin", "Mobile PIN", {
+          type: "password",
+          required: false,
+          minLength: 4,
+          maxLength: 4,
+          pattern: "[0-9]{4}",
+          inputMode: "numeric",
+          title: "Enter exactly four digits.",
+          help: "Optional four-digit PIN for customer and agent transaction approval.",
+        }),
       ],
       initial: staff
         ? {}
@@ -276,7 +293,9 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
           "Product",
           (catalog.data?.products ?? []).map((r) => String(r.code)),
         ),
-        field("customerReference", "Customer / meter reference"),
+        field("customerReference", "Customer / meter reference", {
+          maxLength: 100,
+        }),
         money(),
       ],
     });
@@ -295,15 +314,17 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
         money("amount", "Amount to send"),
         money("feeAmount", "Fee override", false),
         field("senderMobile", "Sender mobile", {
+          maxLength: 40,
           help: "Saved sender details will fill automatically.",
         }),
-        field("senderName", "Sender name"),
-        field("senderIdNumber", "Sender national ID"),
+        field("senderName", "Sender name", { maxLength: 200 }),
+        field("senderIdNumber", "Sender national ID", { maxLength: 100 }),
         field("receiverMobile", "Recipient mobile", {
+          maxLength: 40,
           help: "Saved recipient details will fill automatically.",
         }),
-        field("receiverName", "Recipient name"),
-        field("reasonForSending", "Reason for sending"),
+        field("receiverName", "Recipient name", { maxLength: 200 }),
+        field("reasonForSending", "Reason for sending", { maxLength: 500 }),
         choice("sourceOfFunds", "Source of funds", [
           "SALARY",
           "BUSINESS_INCOME",
@@ -312,7 +333,9 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
           "GIFT",
           "OTHER",
         ]),
-        field("receiverIdNumber", "Recipient national ID"),
+        field("receiverIdNumber", "Recipient national ID", {
+          maxLength: 100,
+        }),
         field("proofOfPayment", "Proof of payment", {
           type: "file",
           required: false,
@@ -635,7 +658,7 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
                                 "CREDIT",
                                 "DEBIT",
                               ]),
-                              field("reason", "Reason"),
+                              field("reason", "Reason", { maxLength: 500 }),
                             ],
                             initial: { wallet: selected.walletNumber },
                           })
@@ -658,7 +681,7 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
                         selected.transactionReference +
                         "/reverse",
                       financial: true,
-                      fields: [field("reason", "Reason")],
+                      fields: [field("reason", "Reason", { maxLength: 500 })],
                       note: "The backend checks reversibility and creates compensating ledger entries for the complete transaction.",
                     })
                   }
@@ -720,6 +743,38 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
                     }
                   >
                     Update access
+                  </button>
+                )}
+              {resource === "users" &&
+                selected.id !== user.id &&
+                ["CUSTOMER", "AGENT", "CORPORATE_USER"].includes(
+                  String(selected.role),
+                ) &&
+                (staff || selected.role === "CORPORATE_USER") && (
+                  <button
+                    className="button secondary"
+                    onClick={() =>
+                      start({
+                        title: "Reset mobile PIN",
+                        path: "/api/auth/users/" + selected.id + "/mobile-pin",
+                        method: "PUT",
+                        fields: [
+                          field("mobilePin", "New mobile PIN", {
+                            type: "password",
+                            required: true,
+                            minLength: 4,
+                            maxLength: 4,
+                            pattern: "[0-9]{4}",
+                            inputMode: "numeric",
+                            title: "Enter exactly four digits.",
+                            help: "Required to approve customer or agent transactions.",
+                          }),
+                        ],
+                        note: "Enter a new four-digit transaction PIN for this user. Current access tokens will be invalidated.",
+                      })
+                    }
+                  >
+                    Reset mobile PIN
                   </button>
                 )}
             </div>

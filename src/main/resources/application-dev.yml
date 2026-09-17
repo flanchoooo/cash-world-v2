@@ -6,7 +6,7 @@ spring:
 wallet:
   public-base-url: ${PUBLIC_BASE_URL:http://localhost:8088}
   browser:
-    allowed-origin: ${ADMIN_ORIGIN:http://localhost:8089}
+    allowed-origin: ${ADMIN_ORIGIN:http://localhost:5173}
     secure-cookie: false
   jwt-secret: ${JWT_SECRET:development-only-secret-at-least-32-bytes-change-me}
   mock-provider-enabled: true

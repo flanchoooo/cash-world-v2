@@ -572,10 +572,13 @@ export function ActionDialog({
             <div className="confirmation-page">
               <div className="confirmation-heading">
                 <span>Final confirmation</span>
-                <h3>Review the transaction</h3>
+                <h3>
+                  {action.financial ? "Review the transaction" : "Review the request"}
+                </h3>
                 <p>
-                  Check the parties, currencies and totals before creating the
-                  remittance.
+                  {action.financial
+                    ? "Check the parties, currencies and totals before creating the remittance."
+                    : "Check the details before submitting this change."}
                 </p>
               </div>
               <section className="confirmation-card">
@@ -725,13 +728,31 @@ export function ActionDialog({
                       pattern={
                         f.pattern ??
                         (f.type === "money"
-                          ? "[0-9]+(\\.[0-9]{1,4})?"
+                          ? "(?!0+(?:\\.0{1,4})?$)[0-9]{1,15}(\\.[0-9]{1,4})?"
                           : f.type === "decimal"
-                            ? "[0-9]+(\\.[0-9]{1,10})?"
+                            ? "[0-9]{1,10}(\\.[0-9]{1,10})?"
+                            : undefined)
+                      }
+                      min={f.min}
+                      max={f.max}
+                      step={f.step}
+                      title={
+                        f.title ??
+                        (f.type === "money"
+                          ? "Enter a positive amount with up to 15 digits and 4 decimal places."
+                          : f.type === "decimal"
+                            ? "Enter a decimal value with up to 10 digits and 10 decimal places."
                             : undefined)
                       }
                       maxLength={
-                        f.maxLength ?? (f.type === "password" ? 72 : 500)
+                        f.maxLength ??
+                        (f.type === "money"
+                          ? 20
+                          : f.type === "decimal"
+                            ? 21
+                            : f.type === "password"
+                              ? 72
+                              : 500)
                       }
                       minLength={f.minLength ?? (f.type === "password" ? 8 : undefined)}
                       value={String(values[f.name] ?? "")}

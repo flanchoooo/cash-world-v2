@@ -30,6 +30,10 @@ export type Field = {
   inputMode?: "decimal" | "numeric" | "text";
   maxLength?: number;
   minLength?: number;
+  min?: number | string;
+  max?: number | string;
+  step?: number | string;
+  title?: string;
 };
 export type Action = {
   title: string;
@@ -82,8 +86,12 @@ export const checkboxes = (
   source: string,
   optionLabel?: (row: Row) => string,
 ) => field(name, label, { type: "checkboxes", source, optionLabel });
-export const money = (name = "amount", label = "Amount", required = true) =>
-  field(name, label, { type: "money", required });
+export const money = (
+  name = "amount",
+  label = "Amount",
+  required = true,
+  extra: Partial<Field> = {},
+) => field(name, label, { type: "money", required, ...extra });
 export const display = (v: unknown): string =>
   v === null || v === undefined || v === ""
     ? "—"

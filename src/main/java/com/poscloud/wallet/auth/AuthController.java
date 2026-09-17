@@ -37,6 +37,12 @@ public class AuthController {
     return service.updateUser(id, request);
   }
 
+  @PutMapping("/users/{id}/mobile-pin")
+  public AuthService.UserView resetMobilePin(
+      @PathVariable UUID id, @Valid @RequestBody AuthService.MobilePinRequest request) {
+    return service.resetMobilePin(id, request);
+  }
+
   @PostMapping("/users/{id}/block")
   public AuthService.UserView block(@PathVariable UUID id) {
     return service.block(id);

@@ -48,7 +48,7 @@ public class AdministrationService {
               "w.customer_id");
       case "users" ->
           new Definition(
-              "u.id,u.username,u.customer_id customerId,c.customer_number customerNumber,u.role,u.status,u.last_login_at lastLoginAt,u.created_at createdAt",
+              "u.id,u.username,u.customer_id customerId,c.customer_number customerNumber,u.role,u.status,u.mobile_pin_hash is not null mobilePinConfigured,u.last_login_at lastLoginAt,u.created_at createdAt",
               "users u left join customers c on c.id=u.customer_id",
               "concat_ws(' ',u.username,c.customer_number)",
               "u.status",

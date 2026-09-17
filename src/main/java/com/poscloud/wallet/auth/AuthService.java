@@ -40,7 +40,8 @@ public class AuthService {
       UUID customerId,
       @NotNull Role role,
       @Size(max = 40) String mobileNumber,
-      @Email @Size(max = 254) String email) {}
+      @Email @Size(max = 254) String email,
+      @Pattern(regexp = "\\d{4}") String mobilePin) {}
 
   @io.swagger.v3.oas.annotations.media.Schema(name = "AuthServiceLogin")
   public record Login(@NotBlank String username, @NotBlank String password) {}
@@ -49,10 +50,21 @@ public class AuthService {
   public record Refresh(@NotBlank String refreshToken) {}
 
   @io.swagger.v3.oas.annotations.media.Schema(name = "AuthServiceUserView")
-  public record UserView(UUID id, UUID customerId, String username, Role role, UserStatus status) {
+  public record UserView(
+      UUID id,
+      UUID customerId,
+      String username,
+      Role role,
+      UserStatus status,
+      boolean mobilePinConfigured) {
     static UserView of(User u) {
       return new UserView(
-          u.getId(), u.getCustomerId(), u.getUsername(), u.getRole(), u.getStatus());
+          u.getId(),
+          u.getCustomerId(),
+          u.getUsername(),
+          u.getRole(),
+          u.getStatus(),
+          u.getMobilePinHash() != null);
     }
   }
 
@@ -91,6 +103,7 @@ public class AuthService {
     u.setStatus(UserStatus.ACTIVE);
     u.setEmail(r.email());
     u.setMobileNumber(r.mobileNumber());
+    if (r.mobilePin() != null) u.setMobilePinHash(passwords.encode(r.mobilePin()));
     users.save(u);
     audit.record("USER_REGISTERED", "users", u.getId());
     return UserView.of(u);
@@ -212,6 +225,8 @@ public class AuthService {
 
   public record UpdateUser(Role role, @NotNull UserStatus status) {}
 
+  public record MobilePinRequest(@NotBlank @Pattern(regexp = "\\d{4}") String mobilePin) {}
+
   @Transactional
   public UserView updateUser(UUID id, UpdateUser r) {
     var actor = access.current();
@@ -267,6 +282,38 @@ public class AuthService {
         id,
         before,
         "{\"role\":\"" + role + "\",\"status\":\"" + r.status() + "\"}");
+    return UserView.of(u);
+  }
+
+  @Transactional
+  public UserView resetMobilePin(UUID id, MobilePinRequest r) {
+    var actor = access.current();
+    ApiException.require(
+        actor.getRole() == Role.SUPER_ADMIN || actor.getRole() == Role.CORPORATE_ADMIN,
+        "FORBIDDEN");
+    ApiException.require(!actor.getId().equals(id), "CANNOT_CHANGE_OWN_ACCESS");
+    var u = users.lockById(id).orElseThrow(() -> new ApiException("USER_NOT_FOUND"));
+    if (actor.getRole() == Role.CORPORATE_ADMIN) {
+      ApiException.require(
+          actor.getCustomerId() != null
+              && actor.getCustomerId().equals(u.getCustomerId())
+              && u.getRole() == Role.CORPORATE_USER,
+          "FORBIDDEN");
+    }
+    ApiException.require(
+        u.getRole() == Role.CUSTOMER
+            || u.getRole() == Role.AGENT
+            || u.getRole() == Role.CORPORATE_USER,
+        "INVALID_ROLE");
+    var before = "{\"mobilePinConfigured\":" + (u.getMobilePinHash() != null) + "}";
+    u.setMobilePinHash(passwords.encode(r.mobilePin()));
+    u.setTokenVersion(u.getTokenVersion() + 1);
+    audit.record(
+        "USER_MOBILE_PIN_RESET",
+        "users",
+        id,
+        before,
+        "{\"mobilePinConfigured\":true}");
     return UserView.of(u);
   }
 

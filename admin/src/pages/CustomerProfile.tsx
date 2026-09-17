@@ -26,16 +26,16 @@ import { ActionDialog, DataTable, Details } from "../components/Operations";
 import { Dialog } from "../components/Dialog";
 
 const customerFields = [
-  field("firstName", "First name"),
-  field("lastName", "Last name"),
-  field("nationalId", "National ID", { required: false }),
-  field("mobileNumber", "Mobile number"),
-  field("email", "Email", { type: "email", required: false }),
-  field("address", "Address", { required: false }),
+  field("firstName", "First name", { maxLength: 100 }),
+  field("lastName", "Last name", { maxLength: 100 }),
+  field("nationalId", "National ID", { required: false, maxLength: 100 }),
+  field("mobileNumber", "Mobile number", { maxLength: 40 }),
+  field("email", "Email", { type: "email", required: false, maxLength: 254 }),
+  field("address", "Address", { required: false, maxLength: 500 }),
 ];
 const corporateFields = [
-  field("companyName", "Company name"),
-  field("registrationNumber", "Registration number"),
+  field("companyName", "Company name", { maxLength: 200 }),
+  field("registrationNumber", "Registration number", { maxLength: 100 }),
   ...customerFields.slice(3),
 ];
 
@@ -185,6 +185,7 @@ export function CustomerProfile({
           maxLength: 4,
           pattern: "[0-9]{4}",
           inputMode: "numeric",
+          title: "Enter exactly four digits.",
           help: credentials.data?.mobilePinConfigured
             ? "Leave blank to keep the current transaction PIN."
             : "Required to approve external sales and reversals.",

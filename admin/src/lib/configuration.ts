@@ -2,8 +2,20 @@ import { field, choice, lookup, money, type Field } from "./operations";
 const status = choice("status", "Status", ["ACTIVE", "INACTIVE"]);
 const bool = (name: string, label: string) =>
   choice(name, label, ["true", "false"]);
-const optional = (name: string, label: string) =>
-  field(name, label, { required: false });
+const nonNegativeMoney = (name: string, label: string, required = false) =>
+  money(name, label, required, {
+    pattern: "[0-9]{1,15}(\\.[0-9]{1,4})?",
+    maxLength: 20,
+    title: "Enter 0 or a positive amount with up to 15 digits and 4 decimal places.",
+  });
+const percentage = (name: string, label: string, required = true) =>
+  field(name, label, {
+    type: "decimal",
+    required,
+    pattern: "(100(\\.0{1,4})?|[0-9]{1,2}(\\.[0-9]{1,4})?)",
+    maxLength: 8,
+    title: "Enter a percentage from 0 to 100 with up to 4 decimal places.",
+  });
 const currency = lookup("currencyId", "Currency", "/api/admin/currencies");
 const settlement = lookup(
   "settlementWalletId",
@@ -29,9 +41,12 @@ export const configurations: {
       ["status", "Status"],
     ],
     fields: [
-      field("code", "Code", { help: "Unique code; it cannot change after creation." }),
-      field("name", "Name"),
-      optional("description", "Description"),
+      field("code", "Code", {
+        maxLength: 40,
+        help: "Unique code; it cannot change after creation.",
+      }),
+      field("name", "Name", { maxLength: 100 }),
+      field("description", "Description", { required: false, maxLength: 500 }),
       choice("scope", "Scope", ["CUSTOMER", "BILLER", "SYSTEM"]),
       status,
     ],
@@ -50,13 +65,22 @@ export const configurations: {
     ],
     fields: [
       field("code", "Currency code", {
+        maxLength: 200,
         help: "Three uppercase letters. Code and decimal places cannot change after creation.",
       }),
-      field("name", "Name"),
-      optional("symbol", "Symbol"),
-      field("decimalPlaces", "Decimal places", { type: "number" }),
+      field("name", "Name", { maxLength: 200 }),
+      field("symbol", "Symbol", { required: false, maxLength: 200 }),
+      field("decimalPlaces", "Decimal places", {
+        type: "number",
+        min: 0,
+        max: 4,
+        step: 1,
+        title: "Enter the supported currency decimal places.",
+      }),
       field("rateAgainstUsd", "Units received for USD 1", {
         type: "decimal",
+        pattern: "(?!0+(?:\\.0{1,10})?$)[0-9]{1,10}(\\.[0-9]{1,10})?",
+        maxLength: 21,
         help: "Example: enter 13.500000 when USD 1 buys 13.50 units. USD must be 1.",
       }),
       status,
@@ -74,9 +98,9 @@ export const configurations: {
       ["status", "Status"],
     ],
     fields: [
-      field("code", "Code"),
-      field("name", "Name"),
-      optional("category", "Category"),
+      field("code", "Code", { maxLength: 200 }),
+      field("name", "Name", { maxLength: 200 }),
+      field("category", "Category", { required: false, maxLength: 200 }),
       bool("isReversible", "Reversible"),
       bool("allowsFee", "Allows fees"),
       bool("allowsCommission", "Allows commissions"),
@@ -128,18 +152,18 @@ export const configurations: {
         "PERCENTAGE",
         "FIXED_PLUS_PERCENTAGE",
       ]),
-      money("fixedAmount", "Fixed amount", false),
-      money("percentage", "Percentage", false),
-      money("minimumFee", "Minimum fee", false),
-      money("maximumFee", "Maximum fee", false),
-      money("minTransactionAmount", "Minimum transaction", false),
-      money("maxTransactionAmount", "Maximum transaction", false),
+      nonNegativeMoney("fixedAmount", "Fixed amount", false),
+      percentage("percentage", "Percentage", false),
+      nonNegativeMoney("minimumFee", "Minimum fee", false),
+      nonNegativeMoney("maximumFee", "Maximum fee", false),
+      nonNegativeMoney("minTransactionAmount", "Minimum transaction", false),
+      nonNegativeMoney("maxTransactionAmount", "Maximum transaction", false),
       field("effectiveFrom", "Effective from", { type: "datetime-local" }),
       field("effectiveTo", "Effective to", {
         type: "datetime-local",
         required: false,
       }),
-      field("priority", "Priority", { type: "number" }),
+      field("priority", "Priority", { type: "number", step: 1 }),
       status,
     ],
     initial: {
@@ -160,8 +184,8 @@ export const configurations: {
       ["status", "Status"],
     ],
     fields: [
-      field("code", "Code"),
-      field("name", "Name"),
+      field("code", "Code", { maxLength: 200 }),
+      field("name", "Name", { maxLength: 200 }),
       choice("category", "Category", [
         "ELECTRICITY",
         "AIRTIME",
@@ -200,8 +224,8 @@ export const configurations: {
     ],
     fields: [
       lookup("billerId", "Biller", "/api/admin/billers"),
-      field("code", "Code"),
-      field("name", "Name"),
+      field("code", "Code", { maxLength: 200 }),
+      field("name", "Name", { maxLength: 200 }),
       currency,
       lookup("walletTypeId", "Wallet type", "/api/admin/wallet-types"),
       settlement,
@@ -211,9 +235,9 @@ export const configurations: {
         "CASHBACK",
       ]),
       choice("agentRewardType", "Agent reward type", ["FIXED", "PERCENTAGE"]),
-      money("agentRewardValue", "Reward value"),
-      money("minimumCommission", "Minimum commission", false),
-      money("maximumCommission", "Maximum commission", false),
+      nonNegativeMoney("agentRewardValue", "Reward value", true),
+      nonNegativeMoney("minimumCommission", "Minimum commission", false),
+      nonNegativeMoney("maximumCommission", "Maximum commission", false),
       status,
     ],
     initial: {
@@ -239,18 +263,15 @@ export const configurations: {
     fields: [
       lookup("billerProductId", "Product", "/api/admin/biller-products"),
       field("arrangementName", "Arrangement name", {
+        maxLength: 100,
         help: "For example: Standard or Custom.",
       }),
-      field("totalCommissionPercentage", "Total commission %", {
-        type: "decimal",
-      }),
-      field("agentCommissionPercentage", "Agent commission %", {
-        type: "decimal",
-      }),
-      field("platformCommissionPercentage", "Platform commission %", {
-        type: "decimal",
+      percentage("totalCommissionPercentage", "Total commission %"),
+      percentage("agentCommissionPercentage", "Agent commission %"),
+      {
+        ...percentage("platformCommissionPercentage", "Platform commission %"),
         help: "Agent % plus platform % must equal total commission %.",
-      }),
+      },
       status,
     ],
     initial: {
@@ -274,10 +295,10 @@ export const configurations: {
       ["status", "Status"],
     ],
     fields: [
-      field("walletNumber", "Wallet number"),
+      field("walletNumber", "Wallet number", { maxLength: 200 }),
       currency,
       choice("walletType", "Wallet type", ["SYSTEM", "BILLER"]),
-      field("name", "Name"),
+      field("name", "Name", { maxLength: 200 }),
       bool("allowNegativeBalance", "Allow negative balance"),
       choice("status", "Status", ["ACTIVE", "BLOCKED"]),
     ],
