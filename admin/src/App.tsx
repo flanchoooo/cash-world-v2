@@ -587,6 +587,7 @@ function EmptyPage({
 export default function App() {
   const state = useSyncExternalStore(subscribe, getSession);
   const cache = useQueryClient();
+  const location = useLocation();
   useEffect(() => {
     if (state.phase === "anonymous") cache.clear();
   }, [state.phase, cache]);
@@ -600,7 +601,11 @@ export default function App() {
             state.session ? (
               <Shell session={state.session} />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate
+                to="/login"
+                replace
+                state={{ from: location.pathname + location.search + location.hash }}
+              />
             )
           }
         />

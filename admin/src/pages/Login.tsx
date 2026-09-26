@@ -1,5 +1,5 @@
 import { useState, useSyncExternalStore } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -20,6 +20,15 @@ const schema = z.object({
 });
 export function Login() {
   const state = useSyncExternalStore(subscribe, getSession);
+  const location = useLocation();
+  const requestedPath = (location.state as { from?: unknown } | null)?.from;
+  const destination =
+    typeof requestedPath === "string" &&
+    requestedPath.startsWith("/") &&
+    !requestedPath.startsWith("//") &&
+    requestedPath !== "/login"
+      ? requestedPath
+      : "/";
   const [visible, setVisible] = useState(false);
   const [error, setError] = useState("");
   const {
@@ -27,7 +36,7 @@ export function Login() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema) });
-  if (state.phase === "authenticated") return <Navigate to="/" replace />;
+  if (state.phase === "authenticated") return <Navigate to={destination} replace />;
   return (
     <div className="login-page">
       <aside className="login-story">
