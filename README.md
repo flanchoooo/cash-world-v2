@@ -12,9 +12,11 @@ Prerequisites: Docker with Compose and access to an existing MySQL database; Jav
 docker compose up --build -d
 ```
 
-The frontend is at `http://localhost:8089`; the backend API is at `http://localhost:8011`. Swagger UI is at [localhost:8011/swagger-ui/index.html](http://localhost:8011/swagger-ui/index.html), and the OpenAPI document is at [localhost:8011/v3/api-docs](http://localhost:8011/v3/api-docs). Backend health is at `/actuator/health`.
+The frontend listens on port `8089`; the backend API listens on port `8011`. The Compose login origin is set to the VPS address below. For local browser login, change `ADMIN_ORIGIN` in `docker-compose.yml` to `http://localhost:8089`. Swagger UI is at [localhost:8011/swagger-ui/index.html](http://localhost:8011/swagger-ui/index.html), and the OpenAPI document is at [localhost:8011/v3/api-docs](http://localhost:8011/v3/api-docs). Backend health is at `/actuator/health`.
 
 Development login: `admin` / `local-admin-change-me`. Compose uses the Spring development settings in `application-dev.yml`; no Spring settings are needed in `.env`.
+
+On the VPS, open `http://54.36.182.209:8089`. Browser login requires `ADMIN_ORIGIN` to match the exact frontend address, including the scheme and port. Compose sets it to that VPS address. If you change the public address later, update this one value in `docker-compose.yml`. The frontend's `/api` proxy continues to reach the backend by its Compose service name.
 
 To run Java directly:
 
