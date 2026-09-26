@@ -9,11 +9,12 @@ import {
 } from "lucide-react";
 import { Details } from "../components/Operations";
 import { api } from "../lib/session";
+import { randomId } from "../lib/browser";
 import type { Row } from "../lib/operations";
 
 export function CashOut() {
   const client = useQueryClient();
-  const key = useRef(crypto.randomUUID());
+  const key = useRef(randomId());
   const [recipientMobile, setRecipientMobile] = useState("");
   const [collectionCode, setCollectionCode] = useState("");
   const [review, setReview] = useState(false);
@@ -72,7 +73,7 @@ export function CashOut() {
   }
 
   function reset() {
-    key.current = crypto.randomUUID();
+    key.current = randomId();
     setRecipientMobile("");
     setCollectionCode("");
     setReview(false);

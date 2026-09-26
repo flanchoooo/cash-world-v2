@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type User } from "../lib/session";
+import { copyText, payloadFingerprint, randomId } from "../lib/browser";
 import {
   display,
   execute,
@@ -265,7 +266,7 @@ export function ActionDialog({
   const [shareStatus, setShareStatus] = useState("");
   const [receiptUrl, setReceiptUrl] = useState("");
   const [receiptPath, setReceiptPath] = useState("");
-  const key = useRef<string>(crypto.randomUUID());
+  const key = useRef<string>(randomId());
   const locked = useRef(false);
   const autoFillCache = useRef(new Set<string>());
   const [submitted, setSubmitted] = useState(false);
@@ -297,11 +298,8 @@ export function ActionDialog({
     let storageKey = "";
     try {
       if (action.financial) {
-        const digest = await crypto.subtle.digest(
-          "SHA-256",
-          new TextEncoder().encode(JSON.stringify([action.path, body])),
-        );
-        storageKey = `cashword-operation:${user.id}:${Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("")}`;
+        const fingerprint = await payloadFingerprint(JSON.stringify([action.path, body]));
+        storageKey = `cashword-operation:${user.id}:${fingerprint}`;
         const saved = sessionStorage.getItem(storageKey);
         if (saved) key.current = saved;
         else sessionStorage.setItem(storageKey, key.current);
@@ -401,7 +399,7 @@ export function ActionDialog({
         await navigator.share({ title: "Remittance receipt", text });
         setShareStatus("Receipt shared. Select the recipient in BOTIM.");
       } else {
-        await navigator.clipboard.writeText(text);
+        await copyText(text);
         window.open("https://botim.me/botim/", "_blank", "noopener,noreferrer");
         setShareStatus(
           "Message copied. Paste it into the recipient’s BOTIM chat.",
@@ -415,8 +413,12 @@ export function ActionDialog({
 
   async function copyReceiptLink() {
     if (!receiptUrl) return;
-    await navigator.clipboard.writeText(receiptUrl);
-    setShareStatus("PDF receipt link copied.");
+    try {
+      await copyText(receiptUrl);
+      setShareStatus("PDF receipt link copied.");
+    } catch {
+      setShareStatus("Copy is unavailable on this device.");
+    }
   }
   async function applyAutoFill(field: string, value: string) {
     const rule = action.autoFill?.find((item) => item.field === field);
