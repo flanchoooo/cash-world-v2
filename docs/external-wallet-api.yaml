@@ -16,7 +16,7 @@ info:
     request must reuse the same key and unchanged body. Sales and reversals also
     require the customer's four-digit mobile PIN.
 servers:
-  - url: http://localhost:8080
+  - url: http://localhost:8011
     description: Local development
   - url: https://api.example.com
     description: Replace with the production API URL

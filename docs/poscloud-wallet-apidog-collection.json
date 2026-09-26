@@ -16,7 +16,7 @@
     ]
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8088", "type": "string" },
+    { "key": "baseUrl", "value": "http://localhost:8011", "type": "string" },
     { "key": "username", "value": "", "type": "string" },
     { "key": "password", "value": "", "type": "string" },
     { "key": "accessToken", "value": "", "type": "string" },

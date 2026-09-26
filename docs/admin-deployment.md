@@ -1,26 +1,21 @@
 # Administration deployment
 
-The verified package consists of the existing Spring Boot application, MySQL and the React build served by Nginx. Production deployment is pending a hosting target and HTTPS domain.
+The package consists of the Spring Boot backend and React build served by Nginx. The backend connects to an existing MySQL database; Compose does not start a database container.
 
 ## Local development package
 
 ```sh
-# If 3306/8080 are already occupied:
-MYSQL_PORT=3307 APP_PORT=18080 docker compose up --build -d
+# Configure DB_URL, DB_USER and DB_PASSWORD in .env first.
+APP_PORT=18080 docker compose up --build -d
 ```
 
-Open `http://localhost:8088`. This deployment uses the dev profile, seeded configuration and mock biller. It is separate from running Vite on port 5173. To connect Vite to a Compose backend, set that backend's `ADMIN_ORIGIN=http://localhost:5173` instead.
+Open `http://localhost:8089` for the admin app or `http://localhost:18080` for the backend API with the port override above. Without the override, the API is at `http://localhost:8011`. This deployment uses the dev profile, seeded configuration and mock biller. The Compose frontend proxies `/api` to the backend service, keeping browser requests same-origin and avoiding CORS configuration. When running Vite outside Compose, its default proxy target is `http://51.222.205.225:8011`; override `BACKEND_URL` to use a different backend. Set the backend's `ADMIN_ORIGIN` to the frontend origin. In Compose, it defaults to `http://localhost:8089`.
 
-## Production package
+## Production deployment
 
-1. Provision MySQL with backup/recovery and TLS. Create separate migration and runtime users using the root README's database permissions. Production does not load development seed records.
-2. Supply `DB_URL`, `DB_USER`, `DB_PASSWORD`, `FLYWAY_USER`, `FLYWAY_PASSWORD`, `JWT_SECRET` (at least 32 bytes) and an exact HTTPS `ADMIN_ORIGIN`, such as `https://admin.your-domain.example`. Keep secrets outside version control. Optional initial bootstrap uses `ADMIN_USERNAME`/`ADMIN_PASSWORD`; remove those values after provisioning.
-3. Configure `REMITTANCE_RATES` only for supported, operationally funded corridors. Configure currencies, system wallets and fees through the administration application before use.
-4. Run `docker compose --env-file /secure/path/production.env -f compose.production.yml up --build -d` on the approved server.
-5. Terminate TLS on that server or an approved load balancer and forward the configured domain to loopback port 8088. Nginx serves the SPA and forwards `/api` to the internal backend. Preserve the original Origin header. Secure refresh cookies require HTTPS. Restrict direct database/backend access.
-6. Verify `/healthz`, sign-in, refresh after reload, restricted roles, a nonfinancial workflow and the operational monitoring/backup arrangements. Test financial flows in a dedicated staging database first.
+The single `docker-compose.yml` is for local development and testing. Production deployment needs a separately managed HTTPS frontend/backend environment, database, secrets, backups and restricted network access. Keep browser API traffic behind the frontend Nginx proxy by setting its `BACKEND_URL` to a backend root URL reachable from the frontend container.
 
-Nginx runs as an unprivileged user, sets browser security headers, caches hashed assets and returns the SPA for deep links. Both build contexts exclude node_modules, local environment files and generated development artifacts. The production Compose file fails when mandatory settings are absent and does not publish the backend or database port.
+Nginx runs as an unprivileged user, sets browser security headers, caches hashed assets and returns the SPA for deep links. Both build contexts exclude node_modules, local environment files and generated development artifacts.
 
 ## Provider boundary
 

@@ -15,7 +15,7 @@ import {
   Network,
 } from "lucide-react";
 import type { Session } from "../lib/session";
-import { workspaces, roleNames, type Workspace } from "../lib/workspaces";
+import { canAccess, workspaces, roleNames, type Workspace } from "../lib/workspaces";
 import { Dialog } from "../components/Dialog";
 export function Overview({
   session,
@@ -39,14 +39,14 @@ export function Overview({
     const data = workspaces.filter(
       (w) =>
         w.id !== "overview" &&
-        w.roles.includes(session.user.role) &&
+        canAccess(w.id, session.user) &&
         (group === "All areas" || w.group === group) &&
         (w.name + " " + w.description)
           .toLowerCase()
           .includes(search.toLowerCase()),
     );
     return sort ? [...data].sort((a, b) => a.name.localeCompare(b.name)) : data;
-  }, [search, group, sort, session.user.role]);
+  }, [search, group, sort, session.user]);
   const pages = Math.max(1, Math.ceil(modules.length / 5));
   const current = Math.min(page, pages - 1);
   const rows = modules.slice(current * 5, current * 5 + 5);
@@ -59,7 +59,7 @@ export function Overview({
         <div className="heading-row">
           <div>
             <h1>Administration overview</h1>
-            <p>Your workspace, access and operational areas at a glance.</p>
+            <p>Manage customers, accounts, payments and settings.</p>
           </div>
           <button className="button secondary" onClick={onProfile}>
             <UserRound size={16} /> My profile
@@ -68,16 +68,13 @@ export function Overview({
       </div>
       <section className="welcome-banner">
         <div>
-          <span className="eyebrow">YOUR OPERATIONS, CONNECTED</span>
-          <h2>Welcome back, {session.user.username}.</h2>
-          <p>You’re signed in to the Poscloud administration workspace.</p>
+          <span className="eyebrow">ADMINISTRATION</span>
+          <h2>Overview</h2>
+          <p>Signed in as {session.user.username}.</p>
         </div>
         <div className="welcome-seal" aria-hidden="true">
           <ShieldCheck size={38} />
         </div>
-        <span className="welcome-status">
-          <span className="status-dot" /> Authenticated workspace
-        </span>
       </section>
       {summary}
       <div className="summary-grid">
@@ -86,14 +83,14 @@ export function Overview({
             Access level <ShieldCheck size={17} />
           </div>
           <strong>{roleNames[session.user.role]}</strong>
-          <span>Permissions assigned to your account</span>
+          <span>Based on your assigned role</span>
         </section>
         <section className="summary-card">
           <div className="summary-label">
             Session time remaining <Clock3 size={17} />
           </div>
           <strong className="tabular">{remaining}</strong>
-          <span>Renews securely while you work</span>
+          <span>Automatically renewed</span>
         </section>
         <section className="summary-card">
           <div className="summary-label">
@@ -105,8 +102,8 @@ export function Overview({
           </strong>
           <span>
             {connected
-              ? "Your account is verified by Poscloud"
-              : "Checking your account connection"}
+              ? "Account is available"
+              : "Checking account status"}
           </span>
         </section>
       </div>
@@ -121,7 +118,7 @@ export function Overview({
                     workspaces.filter(
                       (w) =>
                         w.id !== "overview" &&
-                        w.roles.includes(session.user.role),
+                        canAccess(w.id, session.user),
                     ).length
                   }
                 </span>
@@ -271,34 +268,34 @@ export function Overview({
             <span className="access-icon">
               <ShieldCheck size={21} />
             </span>
-            <h2>A secure foundation</h2>
+            <h2>Access</h2>
             <p>
-              Your account determines which areas and actions you can access.
+              Your role controls which areas and actions are available.
             </p>
             <ul>
               <li>
                 <CircleCheck size={16} />
-                <span>Verified account access</span>
+                <span>Active account</span>
               </li>
               <li>
                 <CircleCheck size={16} />
-                <span>Role-aware navigation</span>
+                <span>Role-based access</span>
               </li>
               <li>
                 <CircleCheck size={16} />
-                <span>Protected session renewal</span>
+                <span>Secure session</span>
               </li>
             </ul>
             <button className="text-button green-link" onClick={onProfile}>
-              Review your access <ArrowRight size={15} />
+              View your profile <ArrowRight size={15} />
             </button>
           </section>
           <section className="release-note">
-            <span className="eyebrow">RELEASE 01</span>
-            <h3>Your daily operations.</h3>
+            <span className="eyebrow">OPERATIONS</span>
+            <h3>Operations</h3>
             <p>
-              Manage customers, accounts and payments through the connected
-              workspaces. Every operation follows your assigned permissions.
+              Use the tools available to your account. Access is based on your
+              assigned role.
             </p>
             <div>
               <span className="mini-check">

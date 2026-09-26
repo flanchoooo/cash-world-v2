@@ -4,6 +4,7 @@ import com.poscloud.wallet.audit.AuditService;
 import com.poscloud.wallet.auth.AccessService;
 import com.poscloud.wallet.common.*;
 import com.poscloud.wallet.common.Types.Status;
+import com.poscloud.wallet.common.Types.Permission;
 import com.poscloud.wallet.currency.CurrencyRepository;
 import com.poscloud.wallet.customer.CustomerRepository;
 import com.poscloud.wallet.wallet.WalletTypeRepository;
@@ -37,6 +38,7 @@ public class CustomerProductAllocationService {
 
   public BulkView createManyForCustomer(String customerNumber, BulkRequest request) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_MANAGE);
     var result = request.commissionPlanIds().stream()
         .distinct()
         .map(id -> createForCustomer(customerNumber, new CustomerRequest(id, request.status())))
@@ -63,6 +65,7 @@ public class CustomerProductAllocationService {
 
   public View createForCustomer(String customerNumber, CustomerRequest request) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_MANAGE);
     var customer = customers.findByCustomerNumber(customerNumber)
         .orElseThrow(() -> new ApiException("CUSTOMER_NOT_FOUND"));
     var plan = activePlan(request.commissionPlanId());
@@ -78,6 +81,7 @@ public class CustomerProductAllocationService {
 
   public View updateForCustomer(String customerNumber, UUID id, CustomerRequest request) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_MANAGE);
     var customer = customers.findByCustomerNumber(customerNumber)
         .orElseThrow(() -> new ApiException("CUSTOMER_NOT_FOUND"));
     var allocation = allocations.findById(id)
@@ -94,6 +98,7 @@ public class CustomerProductAllocationService {
 
   public View delinkFromCustomer(String customerNumber, UUID id) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_MANAGE);
     var customer =
         customers
             .findByCustomerNumber(customerNumber)
@@ -109,6 +114,7 @@ public class CustomerProductAllocationService {
 
   public View status(UUID id, Status status) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_MANAGE);
     var allocation = allocations.findById(id).orElseThrow(() -> new ApiException("ALLOCATION_NOT_FOUND"));
     allocation.setStatus(status);
     audit.record("PRODUCT_ALLOCATION_STATUS_CHANGED", "customer-product-allocations", id);
@@ -118,12 +124,14 @@ public class CustomerProductAllocationService {
   @Transactional(readOnly = true)
   public List<View> list() {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_VIEW);
     return allocations.findAll().stream().map(this::view).toList();
   }
 
   @Transactional(readOnly = true)
   public List<View> listForCustomer(String customerNumber) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_VIEW);
     var customer = customers.findByCustomerNumber(customerNumber)
         .orElseThrow(() -> new ApiException("CUSTOMER_NOT_FOUND"));
     return allocations.findByCustomerIdOrderByCreatedAtDesc(customer.getId()).stream()
@@ -164,6 +172,7 @@ public class CustomerProductAllocationService {
   private View view(CustomerProductAllocation a) {
     var customer = customers.findById(a.getCustomerId()).orElseThrow();
     var product = products.findById(a.getBillerProductId()).orElseThrow();
+    var plan = commissionPlans.find(a.getCommissionPlanId());
     var biller = billers.findById(product.getBillerId()).orElseThrow();
     var currency = currencies.findById(product.getCurrencyId()).orElseThrow();
     var walletType = walletTypes.findById(product.getWalletTypeId()).orElseThrow();
@@ -172,7 +181,7 @@ public class CustomerProductAllocationService {
         a.getBillerProductId(),
         product.getCode(), product.getName(), biller.getName(), currency.getCode(),
         walletType.getCode(),
-        a.getArrangementName(), a.getTotalCommissionPercentage(),
-        a.getAgentCommissionPercentage(), a.getPlatformCommissionPercentage(), a.getStatus());
+        plan.getArrangementName(), plan.getTotalCommissionPercentage(),
+        plan.getAgentCommissionPercentage(), plan.getPlatformCommissionPercentage(), a.getStatus());
   }
 }

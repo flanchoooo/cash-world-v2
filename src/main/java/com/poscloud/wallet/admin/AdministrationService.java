@@ -2,6 +2,7 @@ package com.poscloud.wallet.admin;
 
 import com.poscloud.wallet.auth.AccessService;
 import com.poscloud.wallet.common.ApiException;
+import com.poscloud.wallet.common.Types.Permission;
 import com.poscloud.wallet.common.Types.Role;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -105,6 +106,17 @@ public class AdministrationService {
         "INVALID_PAGE");
     ApiException.require(from == null || to == null || !from.isAfter(to), "INVALID_RANGE");
     var d = definition(resource);
+    var permission =
+        switch (resource) {
+          case "customers" -> Permission.CUSTOMERS_VIEW;
+          case "wallets" -> Permission.WALLETS_VIEW;
+          case "users" -> Permission.USERS_MANAGE;
+          case "transactions", "bill-payments" -> Permission.TRANSACTIONS_VIEW;
+          case "remittances" -> Permission.REMITTANCES_VIEW;
+          case "audit" -> Permission.AUDIT_VIEW;
+          default -> throw new ApiException("RESOURCE_NOT_FOUND");
+        };
+    access.requirePermission(permission);
     var actor = access.current();
     if (resource.equals("users"))
       ApiException.require(actor.getRole() != Role.OPERATIONS, "FORBIDDEN");
@@ -168,6 +180,7 @@ public class AdministrationService {
 
   public Dashboard dashboard() {
     administrator();
+    access.requirePermission(Permission.OVERVIEW_VIEW);
     var actor = access.current();
     boolean corp = actor.getRole() == Role.CORPORATE_ADMIN;
     ApiException.require(!corp || actor.getCustomerId() != null, "FORBIDDEN");

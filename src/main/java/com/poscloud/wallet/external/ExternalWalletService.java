@@ -33,7 +33,6 @@ public class ExternalWalletService {
   private final BillerAdapter adapter;
   private final CustomerProductAllocationRepository allocations;
   private final CustomerProductAllocationService allocationViews;
-  private final LedgerService ledger;
   private final IdempotencyService idempotency;
   private final TransactionQueryService queries;
   private final ExternalSaleRepository sales;
@@ -135,23 +134,6 @@ public class ExternalWalletService {
         .filter(w -> w.getCurrencyId().equals(product.getCurrencyId()) && w.getWalletTypeId().equals(product.getWalletTypeId()) && w.getWalletType() == WalletType.CUSTOMER)
         .findFirst().orElseThrow(() -> new ApiException("WALLET_NOT_FOUND"));
     wallets.usable(wallet);
-    var metadata = new LedgerService.Metadata(
-        customerId, customerId, biller.getId(), product.getId(), amount, BigDecimal.ZERO,
-        agentCommission, RewardMode.DISCOUNT, null, null, "External sale " + product.getCode(),
-        transaction.getIdempotencyKey());
-    var postings = new ArrayList<LedgerService.Posting>();
-    postings.add(new LedgerService.Posting(wallet.getId(), product.getSettlementWalletId(), debit,
-        currency.getId(), EntryType.PRINCIPAL, metadata));
-    if (platformCommission.signum() > 0) {
-      var platformMetadata = new LedgerService.Metadata(
-          customerId, customerId, biller.getId(), product.getId(), amount, BigDecimal.ZERO,
-          platformCommission, RewardMode.NONE, null, null,
-          "Platform commission " + product.getCode(), transaction.getIdempotencyKey());
-      postings.add(new LedgerService.Posting(product.getSettlementWalletId(),
-          wallets.system("FEE_REVENUE", currency.getId()).getId(), platformCommission,
-          currency.getId(), EntryType.COMMISSION, platformMetadata));
-    }
-    ledger.checkBatch(postings);
     if (biller.isSupportsValidation())
       ApiException.require(adapter.validateCustomer(product.getCode(), request.customerReference()),
           "INVALID_CUSTOMER_REFERENCE");
@@ -208,14 +190,6 @@ public class ExternalWalletService {
     payment.setResponseData(sale.getProviderMetadata());
     billPayments.save(payment);
     if (provider.status() == BillerAdapter.State.SUCCESS) {
-      var confirmed = postings.stream().map(p -> {
-        var m = p.metadata();
-        return new LedgerService.Posting(p.debit(), p.credit(), p.amount(), p.currency(), p.entryType(),
-            new LedgerService.Metadata(m.customerId(), m.agentCustomerId(), m.billerId(), m.productId(),
-                m.faceValue(), m.feeAmount(), m.commissionAmount(), m.rewardMode(),
-                provider.providerReference(), null, m.narration(), m.idempotencyKey()));
-      }).toList();
-      ledger.postBatch(transaction.getTransactionReference(), "EXTERNAL_SALE", confirmed);
       return queries.result(transaction.getTransactionReference(), null);
     }
     var status = provider.status() == BillerAdapter.State.PENDING ? TransactionStatus.PENDING : TransactionStatus.FAILED;

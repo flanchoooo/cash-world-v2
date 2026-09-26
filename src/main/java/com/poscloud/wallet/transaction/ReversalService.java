@@ -34,6 +34,12 @@ public class ReversalService {
 
   public TransactionResult reverse(String ref, String key, Request request) {
     access.requireStaff();
+    access.requirePermission(Permission.TRANSACTION_REVERSE);
+    return reverseInternal(ref, key, request);
+  }
+
+  public TransactionResult reverseService(String ref, String key, Request request) {
+    ApiException.require(access.current().getRole() == Role.ESB_SERVICE, "FORBIDDEN");
     return reverseInternal(ref, key, request);
   }
 
@@ -93,11 +99,13 @@ public class ReversalService {
                     row.getFaceValue(),
                     row.getFeeAmount(),
                     row.getCommissionAmount(),
+                    row.getPlatformCommissionAmount(),
                     row.getRewardMode(),
                     row.getProviderReference(),
                     ref,
                     request.reason(),
-                    t.getIdempotencyKey());
+                    t.getIdempotencyKey(),
+                    row.getApiMetadata());
             postings.add(
                 new LedgerService.Posting(
                     row.getCreditWalletId(),

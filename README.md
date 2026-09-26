@@ -6,34 +6,33 @@ All financial movements use `transactions_ledger`. Each row contains both its de
 
 ## Run locally
 
-Prerequisites: Docker with Compose; Java 17 and Maven 3.6.3+ if running outside Docker.
+Prerequisites: Docker with Compose and access to an existing MySQL database; Java 17 and Maven 3.6.3+ if running outside Docker.
 
 ```sh
 cp .env.example .env
+# Set DB_URL, DB_USER and DB_PASSWORD in .env for your existing database.
 docker compose up --build -d
 ```
 
-The development API is at `http://localhost:8080`. Swagger UI is at [localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html), and the OpenAPI document is at [localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs). Health is at `/actuator/health`.
+The frontend is at `http://localhost:8089`; the backend API is at `http://localhost:8011`. Swagger UI is at [localhost:8011/swagger-ui/index.html](http://localhost:8011/swagger-ui/index.html), and the OpenAPI document is at [localhost:8011/v3/api-docs](http://localhost:8011/v3/api-docs). Backend health is at `/actuator/health`.
 
-Development login: `admin` / `local-admin-change-me`. These defaults are for local development only. Override them in `.env` before sharing the environment. The database is persisted in the `wallet-db` volume. `docker compose down` stops containers without deleting that volume.
+Development login: `admin` / `local-admin-change-me`. Override these in `.env` before sharing the environment. Compose starts only the Spring backend and React frontend; the backend connects to the database configured in `.env`.
 
 To run Java directly:
 
 ```sh
-docker compose up -d mysql
 set -a
 . ./.env
 set +a
 export SPRING_PROFILES_ACTIVE=dev
-export DB_URL="jdbc:mysql://localhost:${MYSQL_PORT:-3306}/wallet?connectionTimeZone=UTC"
 mvn spring-boot:run
 ```
 
-Compose loads `.env` automatically; Maven, `java -jar`, and IDE launches do not. The commands above export its settings for Java when using Compose's MySQL account (`wallet` / `wallet-dev` by default).
+Compose loads `.env` automatically; Maven, `java -jar`, and IDE launches do not. The commands above export its settings for Java.
 
 For a locally installed MySQL server with user `root` and no password, activate the `dev` profile and leave `DB_USER` and `DB_PASSWORD` unset: the YAML defaults to `root` and an empty password. Do not load the Compose `.env` credentials for this setup. Remove stale `DB_PASSWORD` or `SPRING_DATASOURCE_PASSWORD` overrides from the shell or IDE run configuration if authentication still reports `using password: YES`. The production profile requires `DB_PASSWORD` explicitly.
 
-The Compose application uses the `wallet` database account; `MYSQL_ROOT_PASSWORD` is a separate administrative credential. Changing `.env` does not change passwords in an already initialized MySQL volume; use the existing password or have the database administrator update the account. Preserve the volume when troubleshooting.
+The Compose file does not start or manage MySQL. Configure `DB_URL`, `DB_USER` and `DB_PASSWORD` for a database the backend can reach.
 
 When a different JDK is your default, set `JAVA_HOME` to a Java 17 installation first. On macOS, `export JAVA_HOME=$(/usr/libexec/java_home -v 17)` selects an installed Java 17 JDK.
 
@@ -169,6 +168,6 @@ Compatibility was checked against the [Spring Boot 3.5 system requirements](http
 
 The modern React administration application in `admin/` includes dashboard totals, customer and wallet operations, transactions/reversals, bills, remittances, commissions, users/access, configuration and a read-only audit trail. Browser sessions use HttpOnly refresh cookies and in-memory access tokens. New administration queries enforce staff/corporate scope on the server.
 
-Restart the updated backend, then run `cd admin && npm ci && npm run dev` and open `http://localhost:5173`. The default Vite proxy targets backend port 8080. The development Docker Compose package serves the administration app at `http://localhost:8088`.
+Restart the updated backend, then run `cd admin && npm ci && BACKEND_URL=http://localhost:8011 npm run dev` and open `http://localhost:5173`. Vite proxies API requests to `BACKEND_URL` so the browser always calls the frontend origin and does not need cross-origin access. Set `ADMIN_ORIGIN` on the backend to the frontend origin (for example, `http://localhost:5173`). Docker Compose uses the same `BACKEND_URL` setting for its Nginx proxy and defaults to `http://backend:8011`; the administration app is served at `http://localhost:8089`.
 
 See [administration setup](admin/README.md), [API integration review](docs/admin-integration.md) and [production deployment](docs/admin-deployment.md). Production hosting requires the target server/domain and secrets; no live deployment has been performed.

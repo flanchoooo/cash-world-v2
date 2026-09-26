@@ -90,8 +90,8 @@ export function DataTable({
         <tbody>
           {rows.map((r, i) => (
             <tr key={String(r.id ?? r.transactionReference ?? i)}>
-              {columns.map(([k]) => (
-                <td key={k}>
+              {columns.map(([k, l]) => (
+                <td key={k} data-label={l}>
                   {k === "status" ? (
                     <span
                       className={`record-status status-${display(r[k]).toLowerCase()}`}
@@ -104,7 +104,7 @@ export function DataTable({
                 </td>
               ))}
               {onSelect && (
-                <td>
+                <td data-label="">
                   <button className="text-button" onClick={() => onSelect(r)}>
                     View
                     <span className="sr-only">
@@ -301,7 +301,7 @@ export function ActionDialog({
           "SHA-256",
           new TextEncoder().encode(JSON.stringify([action.path, body])),
         );
-        storageKey = `poscloud-operation:${user.id}:${Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("")}`;
+        storageKey = `cashword-operation:${user.id}:${Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("")}`;
         const saved = sessionStorage.getItem(storageKey);
         if (saved) key.current = saved;
         else sessionStorage.setItem(storageKey, key.current);

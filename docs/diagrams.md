@@ -18,7 +18,6 @@ erDiagram
     currencies ||--o{ transactionsLedger : denominates
     billers ||--o{ billerProducts : offers
     wallets ||--o{ billerProducts : settles
-    wallets ||--o{ billers : defaultSettlement
     currencies ||--o{ billerProducts : prices
     billerProducts |o--o{ fees : scopes
     transactionTypes ||--o{ fees : prices

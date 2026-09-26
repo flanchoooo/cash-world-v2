@@ -34,6 +34,7 @@ public class CommissionService {
       UUID currencyId) {}
 
   public List<View> report(String number, int offset, int limit) {
+    if (access.staff()) access.requirePermission(Permission.COMMISSIONS_VIEW);
     ApiException.require(offset >= 0 && limit > 0 && limit <= 200, "INVALID_PAGE");
     return all(number, false).stream().skip(offset).limit(limit).toList();
   }
@@ -71,6 +72,7 @@ public class CommissionService {
       Map<UUID, BigDecimal> commissionByProduct) {}
 
   public List<Summary> summary(String number) {
+    if (access.staff()) access.requirePermission(Permission.COMMISSIONS_VIEW);
     var groups = new LinkedHashMap<UUID, List<View>>();
     all(number, true).stream()
         .filter(v -> v.status() == TransactionStatus.SUCCESS)

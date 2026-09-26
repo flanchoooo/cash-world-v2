@@ -36,6 +36,7 @@ public class TransferService {
 
   public TransactionResult deposit(String key, Cash r) {
     access.requireStaff();
+    access.requirePermission(Permission.WALLET_DEPOSIT);
     return idempotency.execute(
         key,
         "DEPOSIT",
@@ -53,6 +54,7 @@ public class TransferService {
   }
 
   public TransactionResult withdraw(String key, Cash r) {
+    if (access.staff()) access.requirePermission(Permission.WALLET_WITHDRAW);
     return idempotency.execute(
         key,
         "WITHDRAWAL",
@@ -71,6 +73,7 @@ public class TransferService {
   }
 
   public TransactionResult send(String key, Send r) {
+    if (access.staff()) access.requirePermission(Permission.WALLET_SEND);
     return idempotency.execute(
         key,
         "SEND_MONEY",

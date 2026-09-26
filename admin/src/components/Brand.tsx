@@ -3,7 +3,7 @@ export function Brand({ large = false }: { large?: boolean }) {
     <div className={`brand ${large ? "brand-large" : ""}`}>
       <img src="/favicon.svg" alt="" />
       <div>
-        poscloud<span>ADMINISTRATION</span>
+        cashword<span>ADMINISTRATION</span>
       </div>
     </div>
   );

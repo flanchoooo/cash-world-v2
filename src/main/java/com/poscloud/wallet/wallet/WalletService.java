@@ -86,6 +86,7 @@ public class WalletService {
 
   @Transactional
   public View create(Create r) {
+    if (access.staff()) access.requirePermission(Permission.WALLET_MANAGE);
     access.customer(r.customerId());
     ApiException.require(r.customerId() != null, "CUSTOMER_REQUIRED");
     ApiException.require(r.currencyId() != null || (r.currency() != null && !r.currency().isBlank()), "CURRENCY_REQUIRED");
@@ -132,6 +133,7 @@ public class WalletService {
 
   @Transactional(readOnly = true)
   public View get(String number) {
+    if (access.staff()) access.requirePermission(Permission.WALLETS_VIEW);
     var w = find(number);
     owned(w);
     return view(w);
@@ -140,6 +142,7 @@ public class WalletService {
   @Transactional
   public View status(String number, WalletStatus status) {
     access.requireStaff();
+    access.requirePermission(Permission.WALLET_MANAGE);
     var found = find(number);
     var w = wallets.lock(found.getId()).orElseThrow();
     w.setStatus(status);

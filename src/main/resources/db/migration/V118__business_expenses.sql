@@ -1,0 +1,21 @@
+CREATE TABLE business_expenses (
+  id CHAR(36) PRIMARY KEY,
+  created_at DATETIME(6) NOT NULL,
+  updated_at DATETIME(6) NOT NULL,
+  expense_date DATE NOT NULL,
+  expense_name VARCHAR(200) NOT NULL,
+  category VARCHAR(100),
+  amount DECIMAL(20, 4) NOT NULL,
+  currency_code VARCHAR(3) NOT NULL,
+  requested_by VARCHAR(150) NOT NULL,
+  vendor VARCHAR(200),
+  purpose VARCHAR(1000),
+  expense_reference VARCHAR(150),
+  receipt_reference VARCHAR(500),
+  status VARCHAR(20) NOT NULL DEFAULT 'RECORDED',
+  created_by_user_id CHAR(36) NOT NULL,
+  CONSTRAINT fk_business_expenses_user FOREIGN KEY (created_by_user_id) REFERENCES users(id),
+  CONSTRAINT chk_business_expenses_amount CHECK (amount > 0),
+  INDEX idx_business_expenses_date (expense_date),
+  INDEX idx_business_expenses_status (status)
+) ENGINE=InnoDB;

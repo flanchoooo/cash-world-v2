@@ -5,7 +5,6 @@ import com.poscloud.wallet.auth.AccessService;
 import com.poscloud.wallet.common.*;
 import com.poscloud.wallet.common.Types.*;
 import com.poscloud.wallet.transaction.IdempotencyService;
-import jakarta.persistence.EntityManager;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.util.*;
@@ -20,7 +19,6 @@ public class BillerAdminService {
   private final BillerRepository repository;
   private final AccessService access;
   private final AuditService audit;
-  private final EntityManager entityManager;
   private final IdempotencyService json;
 
   @io.swagger.v3.oas.annotations.media.Schema(name = "BillerAdminServiceRequest")
@@ -28,7 +26,6 @@ public class BillerAdminService {
       @NotBlank @Size(max = 200) String code,
       @NotBlank @Size(max = 200) String name,
       @NotNull BillerCategory category,
-      @NotNull UUID settlementWalletId,
       @NotNull Status status,
       boolean supportsValidation,
       boolean supportsReversal,
@@ -40,7 +37,6 @@ public class BillerAdminService {
       String code,
       String name,
       BillerCategory category,
-      UUID settlementWalletId,
       Status status,
       boolean supportsValidation,
       boolean supportsReversal,
@@ -52,7 +48,6 @@ public class BillerAdminService {
         e.getCode(),
         e.getName(),
         e.getCategory(),
-        e.getSettlementWalletId(),
         e.getStatus(),
         e.isSupportsValidation(),
         e.isSupportsReversal(),
@@ -61,6 +56,7 @@ public class BillerAdminService {
 
   public View create(Request r) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_MANAGE);
     validate(r, null);
     var e = new Biller();
     apply(e, r);
@@ -71,6 +67,7 @@ public class BillerAdminService {
 
   public View update(UUID id, Request r) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_MANAGE);
     var e = repository.findById(id).orElseThrow(() -> new ApiException("BILLER_NOT_FOUND"));
     validate(r, e);
     var before = json.serialize(view(e));
@@ -82,18 +79,21 @@ public class BillerAdminService {
   @Transactional(readOnly = true)
   public List<View> list() {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_VIEW);
     return repository.findAll().stream().map(this::view).toList();
   }
 
   @Transactional(readOnly = true)
   public View get(UUID id) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_VIEW);
     var e = repository.findById(id).orElseThrow(() -> new ApiException("BILLER_NOT_FOUND"));
     return view(e);
   }
 
   public View status(UUID id, boolean active) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_MANAGE);
     var e = repository.findById(id).orElseThrow(() -> new ApiException("BILLER_NOT_FOUND"));
     var before = json.serialize(view(e));
     e.setStatus(active ? Status.ACTIVE : Status.INACTIVE);
@@ -105,7 +105,6 @@ public class BillerAdminService {
     e.setCode(r.code());
     e.setName(r.name());
     e.setCategory(r.category());
-    e.setSettlementWalletId(r.settlementWalletId());
     e.setStatus(r.status());
     e.setSupportsValidation(r.supportsValidation());
     e.setSupportsReversal(r.supportsReversal());
@@ -113,9 +112,6 @@ public class BillerAdminService {
   }
 
   private void validate(Request r, Biller existing) {
-    var w = entityManager.find(com.poscloud.wallet.wallet.Wallet.class, r.settlementWalletId());
-    ApiException.require(
-        w != null && w.getWalletType() == WalletType.BILLER, "INVALID_SETTLEMENT_WALLET");
     if (existing != null)
       ApiException.require(existing.getCode().equals(r.code()), "BILLER_CODE_IMMUTABLE");
   }

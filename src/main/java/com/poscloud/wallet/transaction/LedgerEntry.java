@@ -43,6 +43,12 @@ public class LedgerEntry extends BaseEntity {
   @Column(precision = 19, scale = 4)
   private BigDecimal commissionAmount;
 
+  @Column(precision = 19, scale = 4)
+  private BigDecimal platformCommissionAmount;
+
+  @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+  private String apiMetadata;
+
   @Enumerated(EnumType.STRING)
   private RewardMode rewardMode;
 

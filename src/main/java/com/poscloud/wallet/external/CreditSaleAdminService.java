@@ -4,6 +4,7 @@ import com.poscloud.wallet.audit.AuditService;
 import com.poscloud.wallet.auth.*;
 import com.poscloud.wallet.biller.BillerProductRepository;
 import com.poscloud.wallet.common.*;
+import com.poscloud.wallet.common.Types.Permission;
 import com.poscloud.wallet.currency.CurrencyRepository;
 import com.poscloud.wallet.customer.CustomerRepository;
 import java.math.BigDecimal;
@@ -34,11 +35,13 @@ public class CreditSaleAdminService {
   @Transactional(readOnly = true)
   public List<View> list() {
     access.requireStaff();
+    access.requirePermission(Permission.CREDIT_SALES_VIEW);
     return sales.findByCreditSaleTrueOrderByCreatedAtDesc().stream().map(this::view).toList();
   }
 
   public View collected(UUID id) {
     access.requireStaff();
+    access.requirePermission(Permission.CREDIT_SALES_MANAGE);
     var sale = sales.findById(id).orElseThrow(() -> new ApiException("CREDIT_SALE_NOT_FOUND"));
     ApiException.require(sale.isCreditSale(), "CREDIT_SALE_NOT_FOUND");
     ApiException.require("OUTSTANDING".equals(sale.getCreditStatus()), "CREDIT_SALE_ALREADY_SETTLED");

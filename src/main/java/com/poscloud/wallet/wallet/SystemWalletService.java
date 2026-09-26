@@ -77,6 +77,7 @@ public class SystemWalletService {
   @Transactional(readOnly = true)
   public List<View> list() {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_VIEW);
     return repository.findAll().stream()
         .filter(e -> e.getCustomerId() == null)
         .map(this::view)
@@ -86,6 +87,7 @@ public class SystemWalletService {
   @Transactional(readOnly = true)
   public View get(UUID id) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_VIEW);
     var e = repository.findById(id).orElseThrow(() -> new ApiException("WALLET_NOT_FOUND"));
     ApiException.require(e.getCustomerId() == null, "INVALID_WALLET_TYPE");
     return view(e);

@@ -24,6 +24,7 @@ import {
 } from "../lib/operations";
 import { ActionDialog, DataTable, Details } from "../components/Operations";
 import { Dialog } from "../components/Dialog";
+import { canPerform } from "../lib/workspaces";
 
 const customerFields = [
   field("firstName", "First name", { maxLength: 100 }),
@@ -52,6 +53,7 @@ export function CustomerProfile({
   const [selectedAllocation, setSelectedAllocation] = useState<Row | null>(
     null,
   );
+  const canManageCustomer = canPerform(user, "CUSTOMERS_MANAGE");
   const customer = useQuery({
     queryKey: ["customer-profile", customerNumber],
     queryFn: () =>
@@ -59,6 +61,7 @@ export function CustomerProfile({
   });
   const wallets = useQuery({
     queryKey: ["customer-profile-wallets", customerNumber],
+    enabled: canPerform(user, "WALLETS_VIEW"),
     queryFn: () =>
       api<Page>(
         "/api/admin/workspace/wallets?search=" +
@@ -68,6 +71,7 @@ export function CustomerProfile({
   });
   const transactions = useQuery({
     queryKey: ["customer-profile-transactions", customerNumber],
+    enabled: canPerform(user, "TRANSACTIONS_VIEW"),
     queryFn: () =>
       api<Row[] | null>(
         `/api/customers/${encodeURIComponent(customerNumber)}/transactions?offset=0&limit=100`,
@@ -75,6 +79,7 @@ export function CustomerProfile({
   });
   const credentials = useQuery({
     queryKey: ["customer-api-credentials", customerNumber],
+    enabled: canManageCustomer,
     queryFn: () =>
       api<Row>(
         `/api/customers/${encodeURIComponent(customerNumber)}/api-credentials`,
@@ -82,6 +87,7 @@ export function CustomerProfile({
   });
   const allocations = useQuery({
     queryKey: ["customer-product-allocations", customerNumber],
+    enabled: canPerform(user, "CONFIGURATION_VIEW"),
     queryFn: () =>
       api<Row[]>(
         `/api/admin/customer-product-allocations/customer/${encodeURIComponent(customerNumber)}`,
@@ -286,7 +292,7 @@ export function CustomerProfile({
           {String(data.status).replaceAll("_", " ")}
         </span>
       </div>
-      <section className="profile-operations-card">
+      {(canPerform(user, "WALLET_DEPOSIT") || canPerform(user, "WALLET_WITHDRAW")) && <section className="profile-operations-card">
         <div className="profile-card-heading">
           <div>
             <p className="eyebrow">WALLET OPERATIONS</p>
@@ -298,24 +304,24 @@ export function CustomerProfile({
           <WalletCards size={20} />
         </div>
         <div className="profile-operation-grid">
-          <button
+          {canPerform(user, "WALLET_DEPOSIT") && <button
             className="profile-operation-button"
             disabled={!walletOptions.length}
             onClick={() => openCash("deposit")}
           >
             <strong>Deposit</strong>
             <span>Add funds to a customer wallet</span>
-          </button>
-          <button
+          </button>}
+          {canPerform(user, "WALLET_WITHDRAW") && <button
             className="profile-operation-button"
             disabled={!walletOptions.length}
             onClick={() => openCash("withdraw")}
           >
             <strong>Withdraw</strong>
             <span>Remove funds from a customer wallet</span>
-          </button>
+          </button>}
         </div>
-      </section>
+      </section>}
       <div className="customer-profile-grid">
         <section className="profile-card profile-identity-card">
           <div className="profile-card-heading">
@@ -327,7 +333,7 @@ export function CustomerProfile({
           </div>
           <Details row={data} />
         </section>
-        <section className="profile-card profile-wallet-card">
+        {canPerform(user, "WALLETS_VIEW") && <section className="profile-card profile-wallet-card">
           <div className="profile-card-heading">
             <div>
               <p className="eyebrow">ACCOUNT OVERVIEW</p>
@@ -353,10 +359,10 @@ export function CustomerProfile({
           ) : (
             <p className="profile-muted">No wallets found for this customer.</p>
           )}
-        </section>
+        </section>}
       </div>
       <div className="profile-management-grid">
-        <section className="profile-card profile-api-card">
+        {canManageCustomer && <section className="profile-card profile-api-card">
           <div className="profile-card-heading">
             <div>
               <p className="eyebrow">API ACCESS</p>
@@ -398,8 +404,8 @@ export function CustomerProfile({
           >
             <KeyRound size={15} /> Update credentials
           </button>
-        </section>
-        <section className="profile-card profile-products-card">
+        </section>}
+        {canPerform(user, "CONFIGURATION_VIEW") && <section className="profile-card profile-products-card">
           <div className="profile-card-heading">
             <div>
               <p className="eyebrow">PRODUCT ACCESS</p>
@@ -414,9 +420,9 @@ export function CustomerProfile({
             <span className="profile-count">
               {allocations.data?.length ?? 0} allocated
             </span>
-            <button className="button primary" onClick={() => openAllocation()}>
+            {canPerform(user, "CONFIGURATION_MANAGE") && <button className="button primary" onClick={() => openAllocation()}>
               <Plus size={15} /> Allocate predefined plan
-            </button>
+            </button>}
           </div>
           {allocations.isPending ? (
             <p className="profile-muted">Loading allocated products…</p>
@@ -437,9 +443,9 @@ export function CustomerProfile({
               onSelect={setSelectedAllocation}
             />
           )}
-        </section>
+        </section>}
       </div>
-      <section className="profile-card profile-transactions-card">
+      {canPerform(user, "TRANSACTIONS_VIEW") && <section className="profile-card profile-transactions-card">
         <div className="profile-card-heading">
           <div>
             <p className="eyebrow">ACTIVITY</p>
@@ -468,8 +474,8 @@ export function CustomerProfile({
             ]}
           />
         )}
-      </section>
-      <section className="profile-actions-card">
+      </section>}
+      {canManageCustomer && <section className="profile-actions-card">
         <div>
           <p className="eyebrow">CUSTOMER ACTIONS</p>
           <h2>Manage this customer</h2>
@@ -488,7 +494,7 @@ export function CustomerProfile({
             </button>
           )}
         </div>
-      </section>
+      </section>}
       {action && (
         <ActionDialog
           action={action}

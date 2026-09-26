@@ -44,6 +44,7 @@ import { CustomerProfile } from "./pages/CustomerProfile";
 import { CashOut } from "./pages/CashOut";
 import { RemittanceReports } from "./pages/RemittanceReports";
 import { CreditSales } from "./pages/CreditSales";
+import { Expenses } from "./pages/Expenses";
 
 function Gate({ children }: { children: React.ReactNode }) {
   const state = useSyncExternalStore(subscribe, getSession);
@@ -132,7 +133,7 @@ function Shell({ session }: { session: Session }) {
   });
   const currentSession = { ...session, user: identity.data ?? session.user };
   const user = currentSession.user;
-  const allowed = workspaces.filter((w) => w.roles.includes(user.role));
+  const allowed = workspaces.filter((w) => canAccess(w.id, user));
   const activeId = location.pathname.split("/")[1] || "overview";
   const customerNumber =
     activeId === "customers" ? location.pathname.split("/")[2] : undefined;
@@ -203,9 +204,9 @@ function Shell({ session }: { session: Session }) {
           </button>
         </div>
         <div className="workspace-switch">
-          <span className="workspace-avatar">P</span>
+          <span className="workspace-avatar">C</span>
           <div>
-            <strong>Poscloud workspace</strong>
+            <strong>Cashword workspace</strong>
             <small>Administration</small>
           </div>
           <ShieldCheck size={16} />
@@ -336,7 +337,7 @@ function Shell({ session }: { session: Session }) {
             </div>
           )}
           {!adminRoles.includes(user.role) ||
-          (active && !canAccess(activeId, user.role)) ? (
+          (active && !canAccess(activeId, user)) ? (
             <EmptyPage
               title="This workspace is restricted"
               description="Your account does not have permission to open this area. Contact your administrator if your access needs to change."
@@ -364,7 +365,9 @@ function Shell({ session }: { session: Session }) {
             ) : activeId === "remittance-reports" ? (
               <RemittanceReports />
             ) : activeId === "credit-sales" ? (
-              <CreditSales />
+              <CreditSales user={user} />
+            ) : activeId === "expenses" ? (
+              <Expenses />
             ) : (
               <Banking key={activeId} resource={activeId} user={user} />
             )
@@ -376,7 +379,7 @@ function Shell({ session }: { session: Session }) {
           )}
         </main>
         <footer className="app-footer">
-          <span>© {new Date().getFullYear()} Poscloud</span>
+          <span>© {new Date().getFullYear()} Cashword</span>
           <span>
             <ShieldCheck size={12} /> Access controlled · Administration v1.0
           </span>
@@ -436,7 +439,7 @@ function Shell({ session }: { session: Session }) {
       </Dialog>
       <Dialog
         open={logout}
-        title="Sign out of Poscloud?"
+        title="Sign out of Cashword?"
         onClose={() => setLogout(false)}
         busy={busy}
       >
@@ -486,7 +489,7 @@ function Shell({ session }: { session: Session }) {
       </Dialog>
       <Dialog
         open={help}
-        title="Workspace guide"
+        title="Help"
         onClose={() => setHelp(false)}
       >
         <p className="muted">
@@ -496,7 +499,7 @@ function Shell({ session }: { session: Session }) {
         <div className="guide-item">
           <ShieldCheck size={20} />
           <div>
-            <h3>Your role, your workspace</h3>
+            <h3>Access by role</h3>
             <p>
               Only areas available to your role appear in navigation. The server
               also checks access for every request.
@@ -506,7 +509,7 @@ function Shell({ session }: { session: Session }) {
         <div className="guide-item">
           <Search size={20} />
           <div>
-            <h3>Find your way</h3>
+            <h3>Search</h3>
             <p>
               Use the workspace directory or press Ctrl/⌘ K to find an area.
               Financial actions require confirmation and are validated by the

@@ -40,11 +40,20 @@ public class LedgerService {
       BigDecimal faceValue,
       BigDecimal feeAmount,
       BigDecimal commissionAmount,
+      BigDecimal platformCommissionAmount,
       RewardMode rewardMode,
       String providerReference,
       String originalReference,
       String narration,
-      String idempotencyKey) {
+      String idempotencyKey,
+      String apiMetadata) {
+    public Metadata(UUID customerId, UUID agentCustomerId, UUID billerId, UUID productId,
+        BigDecimal faceValue, BigDecimal feeAmount, BigDecimal commissionAmount, RewardMode rewardMode,
+        String providerReference, String originalReference, String narration, String idempotencyKey) {
+      this(customerId, agentCustomerId, billerId, productId, faceValue, feeAmount, commissionAmount,
+          BigDecimal.ZERO, rewardMode, providerReference, originalReference, narration, idempotencyKey, null);
+    }
+
     public static Metadata basic(UUID customerId, BigDecimal amount, String narration) {
       return new Metadata(
           customerId,
@@ -54,10 +63,12 @@ public class LedgerService {
           amount,
           BigDecimal.ZERO,
           BigDecimal.ZERO,
+          BigDecimal.ZERO,
           RewardMode.NONE,
           null,
           null,
           narration,
+          null,
           null);
     }
   }
@@ -179,6 +190,8 @@ public class LedgerService {
               .faceValue(m.faceValue())
               .feeAmount(m.feeAmount())
               .commissionAmount(m.commissionAmount())
+              .platformCommissionAmount(m.platformCommissionAmount())
+              .apiMetadata(m.apiMetadata())
               .rewardMode(m.rewardMode())
               .providerReference(m.providerReference())
               .originalTransactionReference(m.originalReference())

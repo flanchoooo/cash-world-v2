@@ -5,6 +5,7 @@ import { api, type User } from "../lib/session";
 import {
   field,
   choice,
+  checkboxes,
   lookup,
   money,
   csv,
@@ -19,7 +20,7 @@ import {
   useDebounced,
 } from "../components/Operations";
 import { Dialog } from "../components/Dialog";
-import { workspaces } from "../lib/workspaces";
+import { canPerform, workspaces } from "../lib/workspaces";
 const customerFields = [
   field("firstName", "First name", { maxLength: 100 }),
   field("lastName", "Last name", { maxLength: 100 }),
@@ -174,6 +175,11 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
           : "/api/remittances/" + selected!.remittanceReference,
       ),
   });
+  const userAccess = useQuery({
+    queryKey: ["user-access", selected?.id],
+    enabled: resource === "users" && !!selected,
+    queryFn: () => api<Row>(`/api/auth/users/${selected!.id}`),
+  });
   const start = (a: Action) => {
     setSelected(null);
     setAction(a);
@@ -251,6 +257,7 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
                 "CORPORATE_USER",
                 "AGENT",
               ]),
+              checkboxes("permissions", "Operations permissions (only used for Operations role)", "/api/auth/permissions", (option) => `${String(option.area)} · ${String(option.name)}`, "code"),
             ]
           : [
               field("customerId", "Corporate customer", { disabled: true }),
@@ -274,7 +281,7 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
         }),
       ],
       initial: staff
-        ? {}
+        ? { permissions: [] }
         : { customerId: user.customerId, role: "CORPORATE_USER" },
     });
   }
@@ -390,7 +397,7 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
         </div>
       )}
       <div className="page-actions">
-        {resource === "customers" && (
+        {resource === "customers" && canPerform(user, "CUSTOMERS_MANAGE") && (
           <>
             <button
               className="button primary"
@@ -408,6 +415,7 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
         )}
         {resource === "wallets" && (
           <>
+            {canPerform(user, "WALLET_MANAGE") && (
             <button
               className="button primary"
               onClick={createWallet}
@@ -415,7 +423,8 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
             >
               Create wallet
             </button>
-            {staff && (
+            )}
+            {canPerform(user, "WALLET_DEPOSIT") && (
               <button
                 className="button secondary"
                 onClick={() => cash("deposit")}
@@ -423,21 +432,21 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
                 Deposit
               </button>
             )}
-            <button
+            {canPerform(user, "WALLET_WITHDRAW") && <button
               className="button secondary"
               onClick={() => cash("withdraw")}
             >
               Withdraw
-            </button>
-            <button
+            </button>}
+            {canPerform(user, "WALLET_SEND") && <button
               className="button secondary"
               onClick={() => cash("send-money")}
             >
               Send money
-            </button>
+            </button>}
           </>
         )}
-        {resource === "users" && (
+        {resource === "users" && (user.role === "SUPER_ADMIN" || user.role === "CORPORATE_ADMIN") && (
           <button className="button primary" onClick={createUser}>
             Create user
           </button>
@@ -451,7 +460,7 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
             Purchase bill
           </button>
         )}
-        {resource === "remittances" && (
+        {resource === "remittances" && canPerform(user, "REMITTANCE_SEND") && (
           <button
             className="button primary"
             onClick={remit}
@@ -615,13 +624,13 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
                   >
                     Wallet statement
                   </button>
-                  <button
+                  {canPerform(user, "WALLET_SEND") && <button
                     className="button secondary"
                     onClick={() => cash("send-money", selected)}
                   >
                     Send money
-                  </button>
-                  {staff && (
+                  </button>}
+                  {canPerform(user, "WALLET_MANAGE") && (
                     <>
                       <button
                         className="button secondary"
@@ -644,33 +653,32 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
                       >
                         {selected.status === "ACTIVE" ? "Block" : "Activate"}
                       </button>
-                      <button
-                        className="button secondary"
-                        onClick={() =>
-                          start({
-                            title: "Account adjustment",
-                            path: "/api/admin/wallets/adjust",
-                            financial: true,
-                            fields: [
-                              field("wallet", "Wallet", { disabled: true }),
-                              money(),
-                              choice("direction", "Direction", [
-                                "CREDIT",
-                                "DEBIT",
-                              ]),
-                              field("reason", "Reason", { maxLength: 500 }),
-                            ],
-                            initial: { wallet: selected.walletNumber },
-                          })
-                        }
-                      >
-                        Adjust balance
-                      </button>
                     </>
+                  )}
+                  {canPerform(user, "WALLET_ADJUST") && (
+                    <button
+                      className="button secondary"
+                      onClick={() =>
+                        start({
+                          title: "Account adjustment",
+                          path: "/api/admin/wallets/adjust",
+                          financial: true,
+                          fields: [
+                            field("wallet", "Wallet", { disabled: true }),
+                            money(),
+                            choice("direction", "Direction", ["CREDIT", "DEBIT"]),
+                            field("reason", "Reason", { maxLength: 500 }),
+                          ],
+                          initial: { wallet: selected.walletNumber },
+                        })
+                      }
+                    >
+                      Adjust balance
+                    </button>
                   )}
                 </>
               )}
-              {resource === "transactions" && selected.status === "SUCCESS" && (
+              {resource === "transactions" && selected.status === "SUCCESS" && canPerform(user, "TRANSACTION_REVERSE") && (
                 <button
                   className="button secondary"
                   onClick={() =>
@@ -708,9 +716,10 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
               )}
               {resource === "users" &&
                 selected.id !== user.id &&
-                (staff || selected.role === "CORPORATE_USER") && (
+                (user.role === "SUPER_ADMIN" || (user.role === "CORPORATE_ADMIN" && selected.role === "CORPORATE_USER")) && (
                   <button
                     className="button secondary"
+                    disabled={user.role === "SUPER_ADMIN" && userAccess.isLoading}
                     onClick={() =>
                       start({
                         title: "Update user access",
@@ -736,13 +745,18 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
                             "BLOCKED",
                             "DISABLED",
                           ]),
+                          ...(user.role === "SUPER_ADMIN"
+                            ? [checkboxes("permissions", "Permissions", "/api/auth/permissions", (option) => `${String(option.area)} · ${String(option.name)}`, "code")]
+                            : []),
                         ],
-                        initial: selected,
-                        note: "Changes invalidate current access tokens. You cannot change your own access here.",
+                        initial: { ...selected, ...(userAccess.data ?? {}), permissions: userAccess.data?.permissions ?? [] },
+                        note: selected.role === "OPERATIONS"
+                          ? "Choose the pages and actions this user can access. Super administrators always have full access."
+                          : "Changes invalidate current access tokens. You cannot change your own access here.",
                       })
                     }
                   >
-                    Update access
+                    {selected.role === "OPERATIONS" && user.role === "SUPER_ADMIN" ? "Role & permissions" : "Update access"}
                   </button>
                 )}
               {resource === "users" &&

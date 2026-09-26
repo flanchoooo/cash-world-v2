@@ -4,24 +4,25 @@ spring:
   application:
     name: poscloud-wallet
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/wallet?connectionTimeZone=UTC}
-    username: ${DB_USER:root}
-    password: ${DB_PASSWORD:}
+    url: ${DB_URL:jdbc:mysql://54.36.182.209:3306/cash_world_v2?connectionTimeZone=UTC}
+    username: ${DB_USER:developer}
+    password: ${DB_PASSWORD:ch@ng3itDev}
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
     properties:
       hibernate:
         type.preferred_uuid_jdbc_type: CHAR
         jdbc.time_zone: UTC
   flyway:
+    enabled: false
     locations: classpath:db/migration
   jackson:
     deserialization:
       fail-on-unknown-properties: true
 server:
-  port: ${SERVER_PORT:8088}
+  port: ${SERVER_PORT:8011}
   error:
     include-message: never
   shutdown: graceful

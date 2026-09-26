@@ -9,5 +9,5 @@ RUN groupadd --system wallet && useradd --system --gid wallet --home-dir /app wa
 WORKDIR /app
 COPY --from=build --chown=wallet:wallet /build/target/wallet-0.0.1-SNAPSHOT.jar app.jar
 USER wallet
-EXPOSE 8080
+EXPOSE 8011
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "/app/app.jar"]

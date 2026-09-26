@@ -3,7 +3,6 @@ package com.poscloud.wallet.biller;
 import com.poscloud.wallet.common.BaseEntity;
 import com.poscloud.wallet.common.Types.*;
 import jakarta.persistence.*;
-import java.util.UUID;
 import lombok.*;
 
 @Getter
@@ -17,8 +16,6 @@ public class Biller extends BaseEntity {
 
   @Enumerated(EnumType.STRING)
   private BillerCategory category;
-
-  private UUID settlementWalletId;
 
   @Enumerated(EnumType.STRING)
   private Status status;

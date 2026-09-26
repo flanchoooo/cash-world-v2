@@ -30,7 +30,6 @@ public class BillerProductService {
       @NotBlank @Size(max = 200) String name,
       @NotNull UUID currencyId,
       UUID walletTypeId,
-      @NotNull UUID settlementWalletId,
       @NotNull RewardMode agentRewardMode,
       @NotNull RewardType agentRewardType,
       @NotNull @DecimalMin("0") @Digits(integer = 15, fraction = 4) BigDecimal agentRewardValue,
@@ -38,14 +37,6 @@ public class BillerProductService {
       @DecimalMin("0") @Digits(integer = 15, fraction = 4) BigDecimal maximumCommission,
       @NotNull Status status) {
     private static final UUID DEFAULT_WALLET_TYPE = UUID.fromString("11000000-0000-0000-0000-000000000001");
-
-    public Request(
-        UUID billerId, String code, String name, UUID currencyId, UUID settlementWalletId,
-        RewardMode agentRewardMode, RewardType agentRewardType, BigDecimal agentRewardValue,
-        BigDecimal minimumCommission, BigDecimal maximumCommission, Status status) {
-      this(billerId, code, name, currencyId, DEFAULT_WALLET_TYPE, settlementWalletId,
-          agentRewardMode, agentRewardType, agentRewardValue, minimumCommission, maximumCommission, status);
-    }
 
     @Override public UUID walletTypeId() { return walletTypeId == null ? DEFAULT_WALLET_TYPE : walletTypeId; }
   }
@@ -58,7 +49,6 @@ public class BillerProductService {
       String name,
       UUID currencyId,
       UUID walletTypeId,
-      UUID settlementWalletId,
       RewardMode agentRewardMode,
       RewardType agentRewardType,
       BigDecimal agentRewardValue,
@@ -74,7 +64,6 @@ public class BillerProductService {
         e.getName(),
         e.getCurrencyId(),
         e.getWalletTypeId(),
-        e.getSettlementWalletId(),
         e.getAgentRewardMode(),
         e.getAgentRewardType(),
         e.getAgentRewardValue(),
@@ -85,6 +74,7 @@ public class BillerProductService {
 
   public View create(Request r) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_MANAGE);
     validate(r, null);
     var e = new BillerProduct();
     apply(e, r);
@@ -96,6 +86,7 @@ public class BillerProductService {
 
   public View update(UUID id, Request r) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_MANAGE);
     var e = repository.findById(id).orElseThrow(() -> new ApiException("BILLERPRODUCT_NOT_FOUND"));
     validate(r, e);
     var before = json.serialize(view(e));
@@ -107,18 +98,21 @@ public class BillerProductService {
   @Transactional(readOnly = true)
   public List<View> list() {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_VIEW);
     return repository.findAll().stream().map(this::view).toList();
   }
 
   @Transactional(readOnly = true)
   public View get(UUID id) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_VIEW);
     var e = repository.findById(id).orElseThrow(() -> new ApiException("BILLERPRODUCT_NOT_FOUND"));
     return view(e);
   }
 
   public View status(UUID id, boolean active) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_MANAGE);
     var e = repository.findById(id).orElseThrow(() -> new ApiException("BILLERPRODUCT_NOT_FOUND"));
     var before = json.serialize(view(e));
     e.setStatus(active ? Status.ACTIVE : Status.INACTIVE);
@@ -135,7 +129,6 @@ public class BillerProductService {
     var walletType = entityManager.find(com.poscloud.wallet.wallet.WalletTypeDefinition.class, r.walletTypeId());
     ApiException.require(walletType != null && walletType.getScope() == WalletScope.CUSTOMER && walletType.getStatus() == Status.ACTIVE, "INVALID_WALLET_TYPE");
     e.setWalletTypeId(r.walletTypeId());
-    e.setSettlementWalletId(r.settlementWalletId());
     e.setAgentRewardMode(r.agentRewardMode());
     e.setAgentRewardType(r.agentRewardType());
     e.setAgentRewardValue(r.agentRewardValue());
@@ -147,22 +140,10 @@ public class BillerProductService {
   private void validate(Request r, BillerProduct existing) {
     ApiException.require(
         entityManager.find(Biller.class, r.billerId()) != null, "BILLER_NOT_FOUND");
-    var w = entityManager.find(com.poscloud.wallet.wallet.Wallet.class, r.settlementWalletId());
-    ApiException.require(
-        w != null
-            && w.getWalletType() == WalletType.BILLER
-            && w.getCurrencyId().equals(r.currencyId()),
-        "INVALID_SETTLEMENT_WALLET");
     if (r.agentRewardType() == RewardType.PERCENTAGE)
       ApiException.require(
           r.agentRewardValue().compareTo(new BigDecimal("100")) < 0, "INVALID_COMMISSION");
     range(r.minimumCommission(), r.maximumCommission());
-    if (existing != null)
-      ApiException.require(
-          existing.getCode().equals(r.code())
-              && existing.getBillerId().equals(r.billerId())
-              && existing.getCurrencyId().equals(r.currencyId()),
-          "PRODUCT_DEFINITION_IMMUTABLE");
   }
 
   private void range(BigDecimal min, BigDecimal max) {

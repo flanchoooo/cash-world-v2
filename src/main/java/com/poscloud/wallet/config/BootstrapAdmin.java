@@ -23,6 +23,7 @@ public class BootstrapAdmin implements ApplicationRunner {
   private String password;
 
   @Transactional
+  @Override
   public void run(ApplicationArguments args) {
     if (username.isBlank() || users.findByUsername(username).isPresent()) return;
     if (password.length() < 8)

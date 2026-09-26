@@ -17,11 +17,6 @@ const percentage = (name: string, label: string, required = true) =>
     title: "Enter a percentage from 0 to 100 with up to 4 decimal places.",
   });
 const currency = lookup("currencyId", "Currency", "/api/admin/currencies");
-const settlement = lookup(
-  "settlementWalletId",
-  "Settlement wallet",
-  "/api/admin/system-wallets",
-);
 export const configurations: {
   id: string;
   name: string;
@@ -197,7 +192,6 @@ export const configurations: {
         "REMITTANCE",
         "OTHER",
       ]),
-      settlement,
       bool("supportsValidation", "Supports validation"),
       bool("supportsReversal", "Supports reversal"),
       bool("supportsEnquiry", "Supports enquiry"),
@@ -228,7 +222,6 @@ export const configurations: {
       field("name", "Name", { maxLength: 200 }),
       currency,
       lookup("walletTypeId", "Wallet type", "/api/admin/wallet-types"),
-      settlement,
       choice("agentRewardMode", "Agent reward mode", [
         "NONE",
         "DISCOUNT",

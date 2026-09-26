@@ -6,7 +6,9 @@ import com.poscloud.wallet.common.Types.*;
 import com.poscloud.wallet.customer.CustomerRepository;
 import jakarta.validation.constraints.*;
 import java.nio.charset.StandardCharsets;
-import java.security.*;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +32,7 @@ public class AuthService {
   private final JwtEncoder encoder;
   private final AccessService access;
   private final AuditService audit;
+  private final JdbcTemplate jdbc;
 
   @Value("${wallet.issuer}")
   private String issuer;
@@ -41,7 +45,13 @@ public class AuthService {
       @NotNull Role role,
       @Size(max = 40) String mobileNumber,
       @Email @Size(max = 254) String email,
-      @Pattern(regexp = "\\d{4}") String mobilePin) {}
+      @Pattern(regexp = "\\d{4}") String mobilePin,
+      List<Permission> permissions) {
+    public Register(String username, String password, UUID customerId, Role role,
+        String mobileNumber, String email, String mobilePin) {
+      this(username, password, customerId, role, mobileNumber, email, mobilePin, null);
+    }
+  }
 
   @io.swagger.v3.oas.annotations.media.Schema(name = "AuthServiceLogin")
   public record Login(@NotBlank String username, @NotBlank String password) {}
@@ -56,16 +66,21 @@ public class AuthService {
       String username,
       Role role,
       UserStatus status,
-      boolean mobilePinConfigured) {
-    static UserView of(User u) {
-      return new UserView(
-          u.getId(),
-          u.getCustomerId(),
-          u.getUsername(),
-          u.getRole(),
-          u.getStatus(),
-          u.getMobilePinHash() != null);
-    }
+      boolean mobilePinConfigured,
+      boolean permissionsCustomized,
+      List<Permission> permissions) {}
+
+  public record PermissionOption(Permission code, String name, String area) {}
+
+  private UserView userView(User u) {
+    var permissions = access.permissions(u.getId());
+    if (!u.isPermissionsCustomized() && u.getRole() == Role.OPERATIONS)
+      permissions = Arrays.stream(Permission.values())
+          .filter(permission -> permission != Permission.USERS_MANAGE)
+          .toList();
+    return new UserView(
+        u.getId(), u.getCustomerId(), u.getUsername(), u.getRole(), u.getStatus(),
+        u.getMobilePinHash() != null, u.isPermissionsCustomized(), permissions);
   }
 
   @io.swagger.v3.oas.annotations.media.Schema(name = "AuthServiceTokens")
@@ -105,8 +120,15 @@ public class AuthService {
     u.setMobileNumber(r.mobileNumber());
     if (r.mobilePin() != null) u.setMobilePinHash(passwords.encode(r.mobilePin()));
     users.save(u);
+    if (r.role() == Role.OPERATIONS && r.permissions() != null) {
+      for (var permission : new LinkedHashSet<>(r.permissions()))
+        jdbc.update(
+            "insert into user_permissions (user_id,permission_code,created_at) values (?,?,?)",
+            u.getId().toString(), permission.name(), java.sql.Timestamp.from(Instant.now()));
+      u.setPermissionsCustomized(true);
+    }
     audit.record("USER_REGISTERED", "users", u.getId());
-    return UserView.of(u);
+    return userView(u);
   }
 
   @Transactional
@@ -143,8 +165,9 @@ public class AuthService {
   public Tokens externalLogin(Login request) {
     var result = login(request);
     ApiException.require(
-        result.user().customerId() != null
-            && (result.user().role() == Role.CUSTOMER || result.user().role() == Role.AGENT),
+        result.user().role() == Role.ESB_SERVICE
+            || (result.user().customerId() != null
+                && (result.user().role() == Role.CUSTOMER || result.user().role() == Role.AGENT)),
         "FORBIDDEN");
     return result;
   }
@@ -205,7 +228,7 @@ public class AuthService {
     refresh.setTokenHash(hash(raw));
     refresh.setExpiresAt(now.plusSeconds(604800));
     refreshTokens.save(refresh);
-    return new Tokens(token, raw, ACCESS_TOKEN_LIFETIME_SECONDS, UserView.of(u));
+    return new Tokens(token, raw, ACCESS_TOKEN_LIFETIME_SECONDS, userView(u));
   }
 
   public static String hash(String s) {
@@ -223,7 +246,9 @@ public class AuthService {
     return updateUser(id, new UpdateUser(null, UserStatus.BLOCKED));
   }
 
-  public record UpdateUser(Role role, @NotNull UserStatus status) {}
+  public record UpdateUser(Role role, @NotNull UserStatus status, List<Permission> permissions) {
+    public UpdateUser(Role role, UserStatus status) { this(role, status, null); }
+  }
 
   public record MobilePinRequest(@NotBlank @Pattern(regexp = "\\d{4}") String mobilePin) {}
 
@@ -272,17 +297,38 @@ public class AuthService {
             customer.getCustomerType() == CustomerType.CORPORATE, "INVALID_CUSTOMER_TYPE");
       if (role == Role.AGENT) ApiException.require(customer.isAgent(), "CUSTOMER_NOT_AGENT");
     }
-    var before = "{\"role\":\"" + u.getRole() + "\",\"status\":\"" + u.getStatus() + "\"}";
+    var beforePermissions = access.permissions(id);
+    var before = "{\"role\":\"" + u.getRole() + "\",\"status\":\"" + u.getStatus()
+        + "\",\"permissionsCustomized\":" + u.isPermissionsCustomized()
+        + ",\"permissions\":" + permissionJson(beforePermissions) + "}";
     u.setRole(role);
     u.setStatus(r.status());
+    if (role == Role.OPERATIONS && r.permissions() != null) {
+      jdbc.update("delete from user_permissions where user_id=?", id.toString());
+      for (var permission : new LinkedHashSet<>(r.permissions()))
+        jdbc.update(
+            "insert into user_permissions (user_id,permission_code,created_at) values (?,?,?)",
+            id.toString(), permission.name(), java.sql.Timestamp.from(Instant.now()));
+      u.setPermissionsCustomized(true);
+    } else if (role != Role.OPERATIONS) {
+      jdbc.update("delete from user_permissions where user_id=?", id.toString());
+      u.setPermissionsCustomized(false);
+    }
     u.setTokenVersion(u.getTokenVersion() + 1);
     audit.record(
         "USER_ACCESS_CHANGED",
         "users",
         id,
         before,
-        "{\"role\":\"" + role + "\",\"status\":\"" + r.status() + "\"}");
-    return UserView.of(u);
+        "{\"role\":\"" + role + "\",\"status\":\"" + r.status()
+            + "\",\"permissionsCustomized\":" + u.isPermissionsCustomized()
+            + ",\"permissions\":" + permissionJson(access.permissions(id)) + "}");
+    return userView(u);
+  }
+
+  private String permissionJson(List<Permission> permissions) {
+    return permissions.stream().map(permission -> "\"" + permission.name() + "\"")
+        .collect(java.util.stream.Collectors.joining(",", "[", "]"));
   }
 
   @Transactional
@@ -314,10 +360,47 @@ public class AuthService {
         id,
         before,
         "{\"mobilePinConfigured\":true}");
-    return UserView.of(u);
+    return userView(u);
   }
 
   public UserView me() {
-    return UserView.of(access.current());
+    return userView(access.current());
+  }
+
+  @Transactional(readOnly = true)
+  public UserView getUser(UUID id) {
+    var actor = access.current();
+    ApiException.require(actor.getRole() == Role.SUPER_ADMIN || actor.getRole() == Role.CORPORATE_ADMIN, "FORBIDDEN");
+    var user = users.findById(id).orElseThrow(() -> new ApiException("USER_NOT_FOUND"));
+    if (actor.getRole() == Role.CORPORATE_ADMIN)
+      ApiException.require(actor.getCustomerId() != null && actor.getCustomerId().equals(user.getCustomerId()) && user.getRole() == Role.CORPORATE_USER, "FORBIDDEN");
+    return userView(user);
+  }
+
+  public List<PermissionOption> permissionOptions() {
+    ApiException.require(access.current().getRole() == Role.SUPER_ADMIN, "FORBIDDEN");
+    return List.of(
+        new PermissionOption(Permission.OVERVIEW_VIEW, "Overview", "General"),
+        new PermissionOption(Permission.CUSTOMERS_VIEW, "View customers", "Customers"),
+        new PermissionOption(Permission.CUSTOMERS_MANAGE, "Create and manage customers", "Customers"),
+        new PermissionOption(Permission.WALLETS_VIEW, "View wallets", "Wallets"),
+        new PermissionOption(Permission.WALLET_MANAGE, "Create and manage wallets", "Wallets"),
+        new PermissionOption(Permission.WALLET_DEPOSIT, "Deposit funds", "Wallets"),
+        new PermissionOption(Permission.WALLET_WITHDRAW, "Withdraw funds", "Wallets"),
+        new PermissionOption(Permission.WALLET_SEND, "Send money", "Wallets"),
+        new PermissionOption(Permission.WALLET_ADJUST, "Adjust balances", "Wallets"),
+        new PermissionOption(Permission.TRANSACTIONS_VIEW, "View transactions", "Transactions"),
+        new PermissionOption(Permission.TRANSACTION_REVERSE, "Reverse transactions", "Transactions"),
+        new PermissionOption(Permission.REMITTANCES_VIEW, "View remittances", "Remittances"),
+        new PermissionOption(Permission.REMITTANCE_SEND, "Send remittances", "Remittances"),
+        new PermissionOption(Permission.REMITTANCE_CASHOUT, "Cash out remittances", "Remittances"),
+        new PermissionOption(Permission.REMITTANCE_REPORTS_VIEW, "View remittance reports", "Reports"),
+        new PermissionOption(Permission.CREDIT_SALES_VIEW, "View credit sales", "Credit sales"),
+        new PermissionOption(Permission.CREDIT_SALES_MANAGE, "Collect credit sales", "Credit sales"),
+        new PermissionOption(Permission.COMMISSIONS_VIEW, "View commissions", "Commissions"),
+        new PermissionOption(Permission.CONFIGURATION_VIEW, "View configuration", "Administration"),
+        new PermissionOption(Permission.CONFIGURATION_MANAGE, "Change configuration", "Administration"),
+        new PermissionOption(Permission.AUDIT_VIEW, "View audit trail", "Administration"),
+        new PermissionOption(Permission.EXPENSES_MANAGE, "Manage expenses", "Administration"));
   }
 }

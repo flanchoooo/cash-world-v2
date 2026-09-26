@@ -28,4 +28,5 @@ public class User extends BaseEntity {
 
   private Instant lastLoginAt;
   private long tokenVersion;
+  private boolean permissionsCustomized;
 }

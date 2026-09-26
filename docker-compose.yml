@@ -1,45 +1,30 @@
 services:
-  mysql:
-    image: mysql:8.4
-    command: ["--log-bin-trust-function-creators=1"]
-    environment:
-      MYSQL_DATABASE: wallet
-      MYSQL_USER: wallet
-      MYSQL_PASSWORD: ${DB_PASSWORD:-wallet-dev}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root-dev-only}
-    ports:
-      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
-    volumes:
-      - wallet-db:/var/lib/mysql
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-  app:
+  backend:
     build: .
     environment:
-      SPRING_PROFILES_ACTIVE: dev
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SERVER_PORT: 8011
+      DB_URL: ${DB_URL:?Set DB_URL to the existing database}
+      DB_USER: ${DB_USER:?Set DB_USER to the existing database user}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD to the existing database password}
+      FLYWAY_USER: ${FLYWAY_USER:-${DB_USER}}
+      FLYWAY_PASSWORD: ${FLYWAY_PASSWORD:-${DB_PASSWORD}}
       ADMIN_ORIGIN: ${ADMIN_ORIGIN:-http://localhost:8089}
-      DB_URL: jdbc:mysql://mysql:3306/wallet?connectionTimeZone=UTC
-      DB_USER: wallet
-      DB_PASSWORD: ${DB_PASSWORD:-wallet-dev}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-local-admin-change-me}
       JWT_SECRET: ${JWT_SECRET:-development-only-secret-at-least-32-bytes-change-me}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8011}
       REMITTANCE_RATES: ${REMITTANCE_RATES:-USD:BWP=13.500000}
     ports:
-      - "127.0.0.1:${APP_PORT:-8088}:8088"
-    depends_on:
-      mysql:
-        condition: service_healthy
+      - "${APP_PORT:-8011}:8011"
     restart: unless-stopped
-  admin:
+
+  frontend:
     build: ./admin
+    environment:
+      BACKEND_URL: ${BACKEND_URL:-http://backend:8011}
     ports:
-      - "127.0.0.1:${ADMIN_PORT:-8089}:8080"
+      - "${ADMIN_PORT:-8089}:8080"
     depends_on:
-      - app
+      - backend
     restart: unless-stopped
-volumes:
-  wallet-db:

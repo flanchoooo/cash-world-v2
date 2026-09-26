@@ -86,6 +86,7 @@ public class FeeAdminService {
 
   public View create(Request r) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_MANAGE);
     validate(r, null);
     var e = new Fee();
     apply(e, r);
@@ -96,6 +97,7 @@ public class FeeAdminService {
 
   public View update(UUID id, Request r) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_MANAGE);
     var e = repository.findById(id).orElseThrow(() -> new ApiException("FEE_NOT_FOUND"));
     validate(r, e);
     var before = json.serialize(view(e));
@@ -107,18 +109,21 @@ public class FeeAdminService {
   @Transactional(readOnly = true)
   public List<View> list() {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_VIEW);
     return repository.findAll().stream().map(this::view).toList();
   }
 
   @Transactional(readOnly = true)
   public View get(UUID id) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_VIEW);
     var e = repository.findById(id).orElseThrow(() -> new ApiException("FEE_NOT_FOUND"));
     return view(e);
   }
 
   public View status(UUID id, boolean active) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_MANAGE);
     var e = repository.findById(id).orElseThrow(() -> new ApiException("FEE_NOT_FOUND"));
     var before = json.serialize(view(e));
     e.setStatus(active ? Status.ACTIVE : Status.INACTIVE);

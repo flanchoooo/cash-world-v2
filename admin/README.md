@@ -1,10 +1,10 @@
-# Poscloud administration
+# Cashword administration
 
 React + TypeScript + Vite, Tailwind CSS, React Router, TanStack Query, React Hook Form and Zod. A responsive core banking administration workspace integrated with the Spring Boot backend.
 
 ## Run locally
 
-Use Node 22.12+ and the updated Java 17 backend. The frontend runs at **http://localhost:8089**, with `/api` proxied to **http://localhost:8088**.
+Use Node 22.12+ and the updated Java 17 backend. The frontend runs at **http://localhost:8089**, with `/api` proxied to **http://localhost:8011**.
 
 ```sh
 cd admin
@@ -52,8 +52,8 @@ All balance movements continue through LedgerService. Reversal creates compensat
 
 ## Deployment
 
-From the repository root, `docker compose up --build` starts the development MySQL, backend and Nginx frontend. Open **http://localhost:8089**. The backend listens on **http://localhost:8088**. The Compose `ADMIN_ORIGIN` defaults to the admin URL. If changing `ADMIN_PORT`, also change `ADMIN_ORIGIN`. Override `MYSQL_PORT` and `APP_PORT` if existing local services occupy their defaults.
+From the repository root, set `DB_URL`, `DB_USER` and `DB_PASSWORD` in `.env`, then run `docker compose up --build`. It starts the Spring backend and React frontend and connects the backend to your existing MySQL database. Open **http://localhost:8089**. The backend listens on **http://localhost:8011**. The Compose `ADMIN_ORIGIN` defaults to the admin URL. If changing `ADMIN_PORT`, also change `ADMIN_ORIGIN`. Override `APP_PORT` if needed. When running Vite outside Compose, `BACKEND_URL` defaults to `http://51.222.205.225:8011`.
 
-For production, use [the deployment guide](../docs/admin-deployment.md) and `compose.production.yml`. Production hosting has not been provisioned; it needs the target server, HTTPS domain, database and secrets. Nginx serves the SPA and proxies `/api` to the backend, preserving the browser Origin and authorization headers.
+This repository has one Compose file: `docker-compose.yml`. It runs MySQL, the Spring backend and the React frontend together. Nginx serves the frontend and proxies `/api` to the backend, preserving the browser Origin and authorization headers. Production hosting needs a separate deployment environment, HTTPS domain, database and secrets.
 
 The backend still uses a mock biller in development and has no live biller/remittance-network adapter. Production rejects unconfigured provider operations. Existing reconciliation, funding and compliance limitations in the root README remain applicable.

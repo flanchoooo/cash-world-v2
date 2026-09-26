@@ -5,8 +5,10 @@ import { DataTable, Details } from "../components/Operations";
 import { Dialog } from "../components/Dialog";
 import { api } from "../lib/session";
 import { csv, type Row } from "../lib/operations";
+import type { User } from "../lib/session";
+import { canPerform } from "../lib/workspaces";
 
-export function CreditSales() {
+export function CreditSales({ user }: { user: User }) {
   const client = useQueryClient();
   const [selected, setSelected] = useState<Row | null>(null);
   const [busy, setBusy] = useState(false);
@@ -106,7 +108,7 @@ export function CreditSales() {
           <>
             <Details row={selected} />
             {error && <p className="operation-error">{error}</p>}
-            {selected.creditStatus === "OUTSTANDING" && (
+            {selected.creditStatus === "OUTSTANDING" && canPerform(user, "CREDIT_SALES_MANAGE") && (
               <div className="operation-footer">
                 <button
                   className="button primary"

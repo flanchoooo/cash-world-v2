@@ -1,0 +1,10 @@
+ALTER TABLE users
+  MODIFY role ENUM(
+    'SUPER_ADMIN',
+    'OPERATIONS',
+    'CUSTOMER',
+    'CORPORATE_ADMIN',
+    'CORPORATE_USER',
+    'AGENT',
+    'ESB_SERVICE'
+  ) NOT NULL;

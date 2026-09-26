@@ -1,5 +1,6 @@
 spring:
   flyway:
+    enabled: true
     user: ${FLYWAY_USER}
     password: ${FLYWAY_PASSWORD}
   datasource:

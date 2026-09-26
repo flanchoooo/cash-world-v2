@@ -31,6 +31,16 @@ public class AuthController {
     return service.me();
   }
 
+  @GetMapping("/users/{id}")
+  public AuthService.UserView getUser(@PathVariable UUID id) {
+    return service.getUser(id);
+  }
+
+  @GetMapping("/permissions")
+  public java.util.List<AuthService.PermissionOption> permissions() {
+    return service.permissionOptions();
+  }
+
   @PutMapping("/users/{id}")
   public AuthService.UserView update(
       @PathVariable UUID id, @Valid @RequestBody AuthService.UpdateUser request) {

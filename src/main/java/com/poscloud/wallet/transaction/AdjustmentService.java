@@ -29,6 +29,7 @@ public class AdjustmentService {
 
   public TransactionResult adjust(String key, Request r) {
     access.requireStaff();
+    access.requirePermission(Permission.WALLET_ADJUST);
     return idempotency.execute(
         key,
         "ACCOUNT_ADJUSTMENT",

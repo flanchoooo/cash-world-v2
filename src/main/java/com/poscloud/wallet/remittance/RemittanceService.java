@@ -156,7 +156,7 @@ public class RemittanceService {
 
   @Transactional(readOnly = true)
   public SavedDetails savedDetails(String mobile, String party) {
-    requireAdministrator();
+    requireAdministrator(Permission.REMITTANCES_VIEW);
     var normalized = normalizeMobile(mobile);
     ApiException.require(normalized.length() >= 7 && normalized.length() <= 20, "INVALID_MOBILE");
     if ("SENDER".equalsIgnoreCase(party)) {
@@ -214,7 +214,7 @@ public class RemittanceService {
 
   @Transactional(readOnly = true)
   public Quote quote(Send r) {
-    requireAdministrator();
+    requireAdministrator(Permission.REMITTANCE_SEND);
     var source = currency(r.sourceCurrency());
     var destination = currency(r.destinationCurrency());
     var amount = Money.amount(r.amount(), source.getDecimalPlaces());
@@ -237,7 +237,7 @@ public class RemittanceService {
   }
 
   public TransactionResult send(String key, Send r) {
-    requireAdministrator();
+    requireAdministrator(Permission.REMITTANCE_SEND);
     return idempotency.execute(
         key,
         "REMITTANCE_SEND",
@@ -327,6 +327,7 @@ public class RemittanceService {
 
   public TransactionResult payout(String ref, String key, Payout r) {
     access.requireStaff();
+    access.requirePermission(Permission.REMITTANCE_CASHOUT);
     return idempotency.execute(
         key,
         "REMITTANCE_PAYOUT:" + ref,
@@ -388,6 +389,7 @@ public class RemittanceService {
 
   public TransactionResult cashOut(String key, CashOut r) {
     access.requireStaff();
+    access.requirePermission(Permission.REMITTANCE_CASHOUT);
     var remittance = cashOutRemittance(r);
     return payout(
         remittance.getRemittanceReference(),
@@ -398,6 +400,7 @@ public class RemittanceService {
   @Transactional(readOnly = true)
   public CashOutPreview previewCashOut(CashOut r) {
     access.requireStaff();
+    access.requirePermission(Permission.REMITTANCE_CASHOUT);
     var remittance = cashOutRemittance(r);
     ApiException.require(
         remittance.getStatus() == RemittanceStatus.AVAILABLE_FOR_PAYOUT,
@@ -527,6 +530,7 @@ public class RemittanceService {
             .findByRemittanceReference(ref)
             .orElseThrow(() -> new ApiException("REMITTANCE_NOT_FOUND"));
     var actor = access.current();
+    if (administrator(actor.getRole())) access.requirePermission(Permission.REMITTANCES_VIEW);
     ApiException.require(
         administrator(actor.getRole())
             || Objects.equals(actor.getCustomerId(), remittance.getSenderCustomerId())
@@ -535,8 +539,9 @@ public class RemittanceService {
     return remittance;
   }
 
-  private void requireAdministrator() {
+  private void requireAdministrator(Permission permission) {
     ApiException.require(administrator(access.current().getRole()), "FORBIDDEN");
+    access.requirePermission(permission);
   }
 
   private boolean administrator(Role role) {

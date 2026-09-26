@@ -1,6 +1,7 @@
 package com.poscloud.wallet.admin;
 
 import com.poscloud.wallet.auth.AccessService;
+import com.poscloud.wallet.common.Types.Permission;
 import com.poscloud.wallet.common.ApiException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -57,6 +58,7 @@ public class RemittanceReportService {
 
   public Report report(ReportType type, PeriodType period, LocalDate anchor) {
     access.requireStaff();
+    access.requirePermission(Permission.REMITTANCE_REPORTS_VIEW);
     var selectedDate = anchor == null ? LocalDate.now(REPORT_ZONE) : anchor;
     var range = range(period, selectedDate);
     var columns = columns(type);

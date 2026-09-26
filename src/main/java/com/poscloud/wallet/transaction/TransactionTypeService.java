@@ -81,12 +81,14 @@ public class TransactionTypeService {
   @Transactional(readOnly = true)
   public List<View> list() {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_VIEW);
     return repository.findAll().stream().map(this::view).toList();
   }
 
   @Transactional(readOnly = true)
   public View get(UUID id) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_VIEW);
     var e =
         repository.findById(id).orElseThrow(() -> new ApiException("TRANSACTIONTYPE_NOT_FOUND"));
     return view(e);

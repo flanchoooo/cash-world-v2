@@ -99,33 +99,9 @@ public class BillPaymentService {
             null,
             "Bill payment " + p.getCode(),
             t.getIdempotencyKey());
+    // Bill payments are provider-side operations only. They no longer create
+    // ledger postings because billers and products have no settlement wallet.
     var postings = new ArrayList<LedgerService.Posting>();
-    postings.add(
-        new LedgerService.Posting(
-            w.getId(),
-            p.getSettlementWalletId(),
-            mode == RewardMode.DISCOUNT ? r.amount().subtract(commission) : r.amount(),
-            currency.getId(),
-            EntryType.PRINCIPAL,
-            m));
-    if (fee.signum() > 0)
-      postings.add(
-          new LedgerService.Posting(
-              w.getId(),
-              wallets.system("FEE_REVENUE", currency.getId()).getId(),
-              fee,
-              currency.getId(),
-              EntryType.FEE,
-              m));
-    if (commission.signum() > 0)
-      postings.add(
-          new LedgerService.Posting(
-              wallets.system("COMMISSION_EXPENSE", currency.getId()).getId(),
-              mode == RewardMode.DISCOUNT ? p.getSettlementWalletId() : w.getId(),
-              commission,
-              currency.getId(),
-              EntryType.COMMISSION,
-              m));
     if (enquiry) {
       try {
         postings =
@@ -143,7 +119,6 @@ public class BillPaymentService {
         throw new IllegalStateException(e);
       }
     }
-    ledger.checkBatch(postings);
     if (b.isSupportsValidation())
       ApiException.require(
           adapter.validateCustomer(p.getCode(), r.customerReference()),
@@ -198,7 +173,6 @@ public class BillPaymentService {
                             confirmed);
                       })
                   .toList());
-      ledger.postBatch(t.getTransactionReference(), "BILL_PAYMENT", postings);
       return queries.result(t.getTransactionReference(), null);
     }
     var status =

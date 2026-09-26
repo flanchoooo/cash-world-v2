@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
+  const backendUrl = env.BACKEND_URL || "http://51.222.205.225:8011";
   return {
     plugins: [react(), tailwindcss()],
     server: {
@@ -10,11 +11,12 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: {
         "/api": {
-          target: env.BACKEND_URL || "http://localhost:8088",
-          changeOrigin: false,
+          target: backendUrl,
+          changeOrigin: true,
         },
         "/actuator/health": {
-          target: env.BACKEND_URL || "http://localhost:8088",
+          target: backendUrl,
+          changeOrigin: true,
         },
       },
     },
@@ -23,8 +25,12 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: {
         "/api": {
-          target: env.BACKEND_URL || "http://localhost:8088",
-          changeOrigin: false,
+          target: backendUrl,
+          changeOrigin: true,
+        },
+        "/actuator/health": {
+          target: backendUrl,
+          changeOrigin: true,
         },
       },
     },

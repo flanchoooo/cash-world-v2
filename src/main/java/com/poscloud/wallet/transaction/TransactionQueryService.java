@@ -30,6 +30,10 @@ public class TransactionQueryService {
     var rows = ledger.findByTransactionReferenceOrderBySequenceNumber(ref);
     ApiException.require(!rows.isEmpty(), "TRANSACTION_NOT_FOUND");
     var first = rows.get(0);
+    var summary = rows.stream().filter(row -> row.getFaceValue() != null).findFirst().orElse(first);
+    var fee = rows.stream().filter(row -> row.getEntryType() == EntryType.FEE)
+        .map(LedgerEntry::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+    if (fee.signum() == 0) fee = first.getFeeAmount();
     var status =
         records.existsByOriginalTransactionReference(ref)
             ? TransactionStatus.REVERSED
@@ -38,9 +42,9 @@ public class TransactionQueryService {
         ref,
         types.findById(first.getTransactionTypeId()).orElseThrow().getCode(),
         status,
-        first.getFaceValue(),
-        first.getFeeAmount(),
-        first.getCommissionAmount(),
+        summary.getFaceValue(),
+        fee,
+        summary.getCommissionAmount(),
         currencies.findById(first.getCurrencyId()).orElseThrow().getCode(),
         first.getBillerId(),
         first.getBillerProductId(),
@@ -56,10 +60,12 @@ public class TransactionQueryService {
                         l.getCreditWalletId(),
                         l.getAmount(),
                         l.getEntryType()))
-            .toList());
+            .toList(),
+        summary.getPlatformCommissionAmount() == null ? BigDecimal.ZERO : summary.getPlatformCommissionAmount());
   }
 
   public TransactionResult get(String ref) {
+    if (access.staff()) access.requirePermission(Permission.TRANSACTIONS_VIEW);
     var record =
         records
             .findByTransactionReference(ref)
@@ -78,12 +84,14 @@ public class TransactionQueryService {
   }
 
   public List<TransactionResult> walletHistory(String number, int offset, int limit) {
+    if (access.staff()) access.requirePermission(Permission.WALLETS_VIEW);
     var w = wallets.find(number);
     wallets.owned(w);
     return grouped(ledger.forWallet(w.getId()), offset, limit);
   }
 
   public List<TransactionResult> customerHistory(String number, int offset, int limit) {
+    if (access.staff()) access.requirePermission(Permission.TRANSACTIONS_VIEW);
     var c = customers.find(number);
     access.customer(c.getId());
     return grouped(ledger.forCustomer(c.getId()), offset, limit);
@@ -110,6 +118,7 @@ public class TransactionQueryService {
       BigDecimal runningBalance) {}
 
   public List<StatementLine> statement(String number, int offset, int limit) {
+    if (access.staff()) access.requirePermission(Permission.WALLETS_VIEW);
     ApiException.require(offset >= 0 && limit > 0 && limit <= 1000, "INVALID_PAGE");
     var w = wallets.find(number);
     wallets.owned(w);

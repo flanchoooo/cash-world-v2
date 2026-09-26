@@ -109,6 +109,7 @@ public class CustomerService {
   @Transactional
   public View create(CustomerType type, Request r) {
     access.requireStaff();
+    access.requirePermission(Permission.CUSTOMERS_MANAGE);
     var c = new Customer();
     c.setCustomerType(type);
     apply(c, r);
@@ -158,6 +159,7 @@ public class CustomerService {
   @Transactional
   public View update(String number, Request r) {
     var c = find(number);
+    if (access.staff()) access.requirePermission(Permission.CUSTOMERS_MANAGE);
     access.customer(c.getId());
     var nationalId = c.getNationalId();
     apply(c, r);
@@ -189,6 +191,7 @@ public class CustomerService {
   @Transactional(readOnly = true)
   public View get(String number) {
     var c = find(number);
+    if (access.staff()) access.requirePermission(Permission.CUSTOMERS_VIEW);
     access.customer(c.getId());
     return View.of(c);
   }
@@ -196,6 +199,7 @@ public class CustomerService {
   @Transactional(readOnly = true)
   public ApiCredentialsView credentials(String number) {
     access.requireStaff();
+    access.requirePermission(Permission.CUSTOMERS_MANAGE);
     var customer = find(number);
     return users
         .findByCustomerId(customer.getId())
@@ -211,6 +215,7 @@ public class CustomerService {
   @Transactional
   public ApiCredentialsView updateCredentials(String number, ApiCredentialsRequest request) {
     access.requireStaff();
+    access.requirePermission(Permission.CUSTOMERS_MANAGE);
     var customer = find(number);
     var username = request.username().trim();
     ApiException.require(!username.isBlank(), "INVALID_USERNAME");
@@ -266,6 +271,7 @@ public class CustomerService {
   @Transactional
   public View status(String number, CustomerStatus status) {
     access.requireStaff();
+    access.requirePermission(Permission.CUSTOMERS_MANAGE);
     var c = find(number);
     c.setStatus(status);
     audit.record("CUSTOMER_" + status, "customers", c.getId());
@@ -275,6 +281,7 @@ public class CustomerService {
   @Transactional
   public View agent(String number, AgentType type) {
     access.requireStaff();
+    access.requirePermission(Permission.CUSTOMERS_MANAGE);
     var c = find(number);
     c.setAgent(true);
     c.setAgentType(type);

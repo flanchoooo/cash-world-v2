@@ -5,12 +5,21 @@ export type Role =
   | "CORPORATE_USER"
   | "CUSTOMER"
   | "AGENT";
+export type Permission =
+  | "OVERVIEW_VIEW" | "CUSTOMERS_VIEW" | "CUSTOMERS_MANAGE" | "WALLETS_VIEW" | "WALLET_MANAGE"
+  | "WALLET_DEPOSIT" | "WALLET_WITHDRAW" | "WALLET_SEND" | "WALLET_ADJUST" | "TRANSACTIONS_VIEW"
+  | "TRANSACTION_REVERSE" | "REMITTANCES_VIEW" | "REMITTANCE_SEND"
+  | "REMITTANCE_CASHOUT" | "REMITTANCE_REPORTS_VIEW" | "CREDIT_SALES_VIEW" | "CREDIT_SALES_MANAGE"
+  | "COMMISSIONS_VIEW" | "USERS_MANAGE" | "CONFIGURATION_VIEW"
+  | "CONFIGURATION_MANAGE" | "AUDIT_VIEW" | "EXPENSES_MANAGE";
 export interface User {
   id: string;
   customerId: string | null;
   username: string;
   role: Role;
   status: "ACTIVE" | "BLOCKED" | "DISABLED";
+  permissionsCustomized?: boolean;
+  permissions?: Permission[];
 }
 export interface Session {
   accessToken: string;
@@ -29,7 +38,7 @@ let revision = 0;
 let refreshFlight: Promise<Session | null> | undefined;
 const channel =
   typeof BroadcastChannel !== "undefined"
-    ? new BroadcastChannel("poscloud-session-events")
+    ? new BroadcastChannel("cashword-session-events")
     : null;
 export const subscribe = (listener: () => void) => {
   listeners.add(listener);
@@ -109,11 +118,13 @@ async function responseData(response: Response) {
   if (!response.ok)
     throw new ApiError(
       response.status,
-      data?.code || "SERVICE_ERROR",
+      data?.code || (response.status >= 500 ? "BACKEND_UNAVAILABLE" : "SERVICE_ERROR"),
       response.status === 401
         ? "The username or password is incorrect, or the account is blocked."
         : response.status === 403
           ? "Your account does not have permission for this action."
+          : response.status >= 500 && !data
+            ? "The backend could not be reached. Check BACKEND_URL and make sure the API is running."
           : (operationErrors[data?.code] ??
             (response.status < 500 && /^[A-Z_]+$/.test(data?.code ?? "")
               ? `Request rejected: ${data.code.toLowerCase().replaceAll("_", " ")}.`
@@ -135,7 +146,7 @@ async function browserPost(action: string, body?: unknown) {
     throw new ApiError(
       0,
       "CONNECTION_ERROR",
-      "We could not reach Poscloud. Check your connection and try again.",
+      "We could not reach Cashword. Check your connection and try again.",
     );
   }
   return responseData(response);
@@ -173,7 +184,7 @@ export function restoreSession(): Promise<Session | null> {
   };
   const attempt = (async () =>
     typeof navigator !== "undefined" && navigator.locks
-      ? await navigator.locks.request("poscloud-refresh", work)
+      ? await navigator.locks.request("cashword-refresh", work)
       : await work())();
   refreshFlight = attempt.finally(() => {
     refreshFlight = undefined;
@@ -187,7 +198,7 @@ export async function signIn(username: string, password: string) {
     return accept(data);
   };
   if (navigator.locks)
-    return await navigator.locks.request("poscloud-refresh", work);
+    return await navigator.locks.request("cashword-refresh", work);
   await refreshFlight?.catch(() => null);
   return work();
 }
@@ -199,7 +210,7 @@ export async function signOut() {
     update({ phase: "anonymous", session: null, message: null });
     channel?.postMessage("signed-out");
   };
-  if (navigator.locks) await navigator.locks.request("poscloud-refresh", work);
+  if (navigator.locks) await navigator.locks.request("cashword-refresh", work);
   else {
     await refreshFlight?.catch(() => null);
     await work();
@@ -225,17 +236,26 @@ export async function api<T>(
     session = await restoreSession();
   if (!session)
     throw new ApiError(401, "UNAUTHORIZED", "Please sign in again.");
-  const send = (token: string) =>
-    fetch(path, {
-      ...options,
-      credentials: "same-origin",
-      headers: {
-        ...(options.body ? { "Content-Type": "application/json" } : {}),
-        ...options.headers,
-        Authorization: `Bearer ${token}`,
-      },
-      signal: options.signal ?? AbortSignal.timeout(30000),
-    });
+  const send = async (token: string) => {
+    try {
+      return await fetch(path, {
+        ...options,
+        credentials: "same-origin",
+        headers: {
+          ...(options.body ? { "Content-Type": "application/json" } : {}),
+          ...options.headers,
+          Authorization: `Bearer ${token}`,
+        },
+        signal: options.signal ?? AbortSignal.timeout(30000),
+      });
+    } catch {
+      throw new ApiError(
+        0,
+        "CONNECTION_ERROR",
+        "We could not reach Cashword. Check BACKEND_URL and try again.",
+      );
+    }
+  };
   let response = await send(session.accessToken);
   if (response.status === 401) {
     const refreshed = await restoreSession();
@@ -252,12 +272,21 @@ export async function apiBlob(path: string): Promise<Blob> {
     session = await restoreSession();
   if (!session)
     throw new ApiError(401, "UNAUTHORIZED", "Please sign in again.");
-  const send = (token: string) =>
-    fetch(path, {
-      credentials: "same-origin",
-      headers: { Authorization: `Bearer ${token}` },
-      signal: AbortSignal.timeout(30000),
-    });
+  const send = async (token: string) => {
+    try {
+      return await fetch(path, {
+        credentials: "same-origin",
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(30000),
+      });
+    } catch {
+      throw new ApiError(
+        0,
+        "CONNECTION_ERROR",
+        "We could not reach Cashword. Check BACKEND_URL and try again.",
+      );
+    }
+  };
   let response = await send(session.accessToken);
   if (response.status === 401) {
     const refreshed = await restoreSession();

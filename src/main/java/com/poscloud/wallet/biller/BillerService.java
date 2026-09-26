@@ -2,7 +2,6 @@ package com.poscloud.wallet.biller;
 
 import com.poscloud.wallet.common.*;
 import com.poscloud.wallet.common.Types.*;
-import com.poscloud.wallet.wallet.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -11,19 +10,17 @@ import org.springframework.stereotype.Service;
 public class BillerService {
   private final BillerRepository billers;
   private final BillerProductRepository products;
-  private final WalletRepository wallets;
+  private final ProductCommissionPlanRepository commissionPlans;
+  private final com.poscloud.wallet.wallet.WalletService wallets;
 
   public BillerProduct product(String code) {
     var p = products.findByCode(code).orElseThrow(() -> new ApiException("PRODUCT_NOT_FOUND"));
     ApiException.require(p.getStatus() == Status.ACTIVE, "PRODUCT_NOT_FOUND");
     biller(p);
-    var w =
-        wallets
-            .findById(p.getSettlementWalletId())
-            .orElseThrow(() -> new ApiException("WALLET_NOT_FOUND"));
+    wallets.currency(p.getCurrencyId());
     ApiException.require(
-        w.getCurrencyId().equals(p.getCurrencyId()) && w.getWalletType() == WalletType.BILLER,
-        "INVALID_SETTLEMENT_WALLET");
+        commissionPlans.existsByBillerProductIdAndStatus(p.getId(), Status.ACTIVE),
+        "PRODUCT_PLAN_NOT_FOUND");
     return p;
   }
 

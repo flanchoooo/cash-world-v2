@@ -33,33 +33,19 @@ export function Login() {
       <aside className="login-story">
         <Brand large />
         <div className="story-copy">
-          <span className="eyebrow">THE OPERATIONS WORKSPACE</span>
-          <h1>
-            Clarity. Control.
-            <br />
-            <span>Every transaction.</span>
-          </h1>
-          <p>
-            A considered workspace for the people
-            <br className="desktop-only" /> behind your financial operations.
-          </p>
-          <div className="story-lines" aria-hidden="true">
-            <div />
-            <div />
-            <div />
-            <div />
-            <div />
-          </div>
+          <span className="eyebrow">ADMINISTRATION</span>
+          <h1>Business operations</h1>
+          <p>Manage customers, wallets, payments and access.</p>
         </div>
         <div className="story-footer">
           <ShieldCheck size={18} />
-          <span>Secure access. Clear accountability.</span>
-          <span className="edition">POSCLOUD / 01</span>
+          <span>Secure administrator sign-in</span>
+          <span className="edition">CASHWORD / 01</span>
         </div>
       </aside>
       <main className="login-main">
         <div className="login-top">
-          <span>Administration platform</span>
+          <span>Cashword Administration</span>
           <span className="badge neutral">
             <LockKeyhole size={12} /> Restricted access
           </span>
@@ -68,8 +54,8 @@ export function Login() {
           <div className="login-symbol">
             <LockKeyhole size={24} />
           </div>
-          <span className="eyebrow green">WELCOME BACK</span>
-          <h2>Sign in to your workspace</h2>
+          <span className="eyebrow green">SIGN IN</span>
+          <h2>Administrator sign-in</h2>
           <p className="muted">
             Use the credentials provided by your administrator.
           </p>
@@ -157,8 +143,7 @@ export function Login() {
           </div>
         </div>
         <footer className="login-bottom">
-          <span>© {new Date().getFullYear()} Poscloud</span>
-          <span>Built for financial operations</span>
+          <span>© {new Date().getFullYear()} Cashword</span>
         </footer>
       </main>
     </div>

@@ -5,6 +5,7 @@ import { configurations } from "../lib/configuration";
 import { type Row, type Action, csv } from "../lib/operations";
 import { ActionDialog, DataTable, Details } from "../components/Operations";
 import { Dialog } from "../components/Dialog";
+import { canPerform } from "../lib/workspaces";
 export function Configuration({ user }: { user: User }) {
   const [tab, setTab] = useState("currencies");
   const [search, setSearch] = useState("");
@@ -13,7 +14,7 @@ export function Configuration({ user }: { user: User }) {
   const [action, setAction] = useState<Action | null>(null);
   const config = configurations.find((c) => c.id === tab)!;
   const path = "/api/admin/" + tab;
-  const canWrite = !config.adminOnly || user.role === "SUPER_ADMIN";
+  const canWrite = canPerform(user, "CONFIGURATION_MANAGE") && (!config.adminOnly || user.role === "SUPER_ADMIN");
   const q = useQuery({
     queryKey: ["configuration", tab],
     queryFn: () => api<Row[]>(path),

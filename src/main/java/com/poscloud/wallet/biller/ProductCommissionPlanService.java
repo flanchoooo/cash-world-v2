@@ -4,6 +4,7 @@ import com.poscloud.wallet.audit.AuditService;
 import com.poscloud.wallet.auth.AccessService;
 import com.poscloud.wallet.common.*;
 import com.poscloud.wallet.common.Types.Status;
+import com.poscloud.wallet.common.Types.Permission;
 import com.poscloud.wallet.currency.CurrencyRepository;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
@@ -47,6 +48,7 @@ public class ProductCommissionPlanService {
 
   public View create(Request request) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_MANAGE);
     validate(request);
     var plan = new ProductCommissionPlan();
     apply(plan, request);
@@ -57,6 +59,7 @@ public class ProductCommissionPlanService {
 
   public View update(UUID id, Request request) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_MANAGE);
     var plan = find(id);
     ApiException.require(
         plan.getBillerProductId().equals(request.billerProductId()),
@@ -69,6 +72,7 @@ public class ProductCommissionPlanService {
 
   public View status(UUID id, Status status) {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_MANAGE);
     var plan = find(id);
     plan.setStatus(status);
     audit.record("PRODUCT_COMMISSION_PLAN_STATUS_CHANGED", "product-commission-plans", id);
@@ -78,6 +82,7 @@ public class ProductCommissionPlanService {
   @Transactional(readOnly = true)
   public List<View> list() {
     access.requireStaff();
+    access.requirePermission(Permission.CONFIGURATION_VIEW);
     return plans.findAll().stream().map(this::view).toList();
   }
 
