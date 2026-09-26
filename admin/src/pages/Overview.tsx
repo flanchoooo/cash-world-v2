@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowDownUp,
   ArrowRight,
@@ -52,7 +53,7 @@ export function Overview({
   const rows = modules.slice(current * 5, current * 5 + 5);
   return (
     <>
-      <div className="page-heading">
+      <div className="page-heading overview-heading">
         <div className="breadcrumb">
           Workspace <span>/</span> Overview
         </div>
@@ -76,6 +77,20 @@ export function Overview({
           <ShieldCheck size={38} />
         </div>
       </section>
+      <nav className="mobile-workspaces" aria-label="All workspaces">
+        <h2>Workspaces</h2>
+        <div className="mobile-workspace-grid">
+          {workspaces
+            .filter((w) => w.id !== "overview" && canAccess(w.id, session.user))
+            .map((w) => (
+              <Link key={w.id} to={`/${w.id}`}>
+                <w.icon size={20} aria-hidden="true" />
+                <span>{w.name}</span>
+                <ChevronRight size={16} aria-hidden="true" />
+              </Link>
+            ))}
+        </div>
+      </nav>
       {summary}
       <div className="summary-grid">
         <section className="summary-card">

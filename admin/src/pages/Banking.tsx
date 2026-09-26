@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { SlidersHorizontal } from "lucide-react";
 import { api, type User } from "../lib/session";
 import {
   field,
@@ -118,6 +119,7 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
   const [search, setSearch] = useState("");
   const term = useDebounced(search);
   const [status, setStatus] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [page, setPage] = useState(0);
@@ -471,7 +473,7 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
         )}
       </div>
       <section className="records-panel">
-        <div className="records-toolbar">
+        <div className="records-toolbar banking-toolbar">
           <input
             aria-label="Search records"
             placeholder="Search name or reference…"
@@ -481,6 +483,15 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
               setPage(0);
             }}
           />
+          <button
+            className="mobile-filter-toggle"
+            aria-expanded={filtersOpen}
+            onClick={() => setFiltersOpen((open) => !open)}
+          >
+            <SlidersHorizontal size={17} />
+            Filters{status || from || to ? " · Active" : ""}
+          </button>
+          <div className={`records-extra-filters ${filtersOpen ? "is-open" : ""}`}>
           {statuses[resource] && (
             <select
               aria-label="Filter status"
@@ -530,6 +541,7 @@ export function Banking({ resource, user }: { resource: string; user: User }) {
           >
             Export page
           </button>
+          </div>
         </div>
         {q.isError ? (
           <div className="operation-error" role="alert">

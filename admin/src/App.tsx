@@ -134,6 +134,9 @@ function Shell({ session }: { session: Session }) {
   const currentSession = { ...session, user: identity.data ?? session.user };
   const user = currentSession.user;
   const allowed = workspaces.filter((w) => canAccess(w.id, user));
+  const mobileTabs = ["overview", "wallets", "remittances", "cash-out"]
+    .map((id) => allowed.find((w) => w.id === id))
+    .filter((w): w is (typeof workspaces)[number] => !!w);
   const activeId = location.pathname.split("/")[1] || "overview";
   const customerNumber =
     activeId === "customers" ? location.pathname.split("/")[2] : undefined;
@@ -287,6 +290,10 @@ function Shell({ session }: { session: Session }) {
               <Menu size={22} />
             </button>
             <span className="topbar-title">Administration</span>
+            <span className="mobile-header-title">
+              <small>Cashword</small>
+              <strong>{active?.name ?? "Workspace"}</strong>
+            </span>
             <span className="topbar-divider" />
             <span className="topbar-context">
               {active?.name ?? "Workspace"}
@@ -310,6 +317,13 @@ function Shell({ session }: { session: Session }) {
             <span className="secure-pill">
               <span className="status-dot" /> Secure session
             </span>
+            <button
+              className="mobile-profile"
+              aria-label="My profile"
+              onClick={() => setProfile(true)}
+            >
+              {user.username.slice(0, 1).toUpperCase()}
+            </button>
             <button
               className="icon-button"
               aria-label="Sign out"
@@ -378,6 +392,29 @@ function Shell({ session }: { session: Session }) {
             />
           )}
         </main>
+        <nav className="mobile-tabbar" aria-label="Primary navigation">
+          {mobileTabs.map((w) => (
+            <Link
+              key={w.id}
+              to={w.id === "overview" ? "/" : `/${w.id}`}
+              className={`mobile-tab ${activeId === w.id ? "active" : ""}`}
+              aria-current={activeId === w.id ? "page" : undefined}
+            >
+              <w.icon size={21} aria-hidden="true" />
+              <span>{w.name}</span>
+            </Link>
+          ))}
+          <button
+            className={`mobile-tab ${!mobileTabs.some((w) => w.id === activeId) ? "active" : ""}`}
+            aria-label="More workspaces"
+            aria-expanded={mobile}
+            aria-controls="main-navigation"
+            onClick={() => setMobile(true)}
+          >
+            <Menu size={21} aria-hidden="true" />
+            <span>More</span>
+          </button>
+        </nav>
         <footer className="app-footer">
           <span>© {new Date().getFullYear()} Cashword</span>
           <span>
