@@ -9,30 +9,24 @@ All financial movements use `transactions_ledger`. Each row contains both its de
 Prerequisites: Docker with Compose and access to an existing MySQL database; Java 17 and Maven 3.6.3+ if running outside Docker.
 
 ```sh
-cp .env.example .env
-# Set DB_URL, DB_USER and DB_PASSWORD in .env for your existing database.
 docker compose up --build -d
 ```
 
 The frontend is at `http://localhost:8089`; the backend API is at `http://localhost:8011`. Swagger UI is at [localhost:8011/swagger-ui/index.html](http://localhost:8011/swagger-ui/index.html), and the OpenAPI document is at [localhost:8011/v3/api-docs](http://localhost:8011/v3/api-docs). Backend health is at `/actuator/health`.
 
-Development login: `admin` / `local-admin-change-me`. Override these in `.env` before sharing the environment. Compose starts only the Spring backend and React frontend; the backend connects to the database configured in `.env`.
+Development login: `admin` / `local-admin-change-me`. Compose uses the Spring development settings in `application-dev.yml`; no Spring settings are needed in `.env`.
 
 To run Java directly:
 
 ```sh
-set -a
-. ./.env
-set +a
-export SPRING_PROFILES_ACTIVE=dev
 mvn spring-boot:run
 ```
 
-Compose loads `.env` automatically; Maven, `java -jar`, and IDE launches do not. The commands above export its settings for Java.
+The backend uses the development profile settings in `application-dev.yml` when running directly.
 
 For a locally installed MySQL server with user `root` and no password, activate the `dev` profile and leave `DB_USER` and `DB_PASSWORD` unset: the YAML defaults to `root` and an empty password. Do not load the Compose `.env` credentials for this setup. Remove stale `DB_PASSWORD` or `SPRING_DATASOURCE_PASSWORD` overrides from the shell or IDE run configuration if authentication still reports `using password: YES`. The production profile requires `DB_PASSWORD` explicitly.
 
-The Compose file does not start or manage MySQL. Configure `DB_URL`, `DB_USER` and `DB_PASSWORD` for a database the backend can reach.
+The Compose file does not start or manage MySQL. The backend uses its database settings from Spring's `application.yml` and `application-dev.yml`.
 
 When a different JDK is your default, set `JAVA_HOME` to a Java 17 installation first. On macOS, `export JAVA_HOME=$(/usr/libexec/java_home -v 17)` selects an installed Java 17 JDK.
 

@@ -124,7 +124,7 @@ async function responseData(response: Response) {
         : response.status === 403
           ? "Your account does not have permission for this action."
           : response.status >= 500 && !data
-            ? "The backend could not be reached. Check BACKEND_URL and make sure the API is running."
+            ? "The backend is starting or unavailable. Please try again shortly."
           : (operationErrors[data?.code] ??
             (response.status < 500 && /^[A-Z_]+$/.test(data?.code ?? "")
               ? `Request rejected: ${data.code.toLowerCase().replaceAll("_", " ")}.`
@@ -252,7 +252,7 @@ export async function api<T>(
       throw new ApiError(
         0,
         "CONNECTION_ERROR",
-        "We could not reach Cashword. Check BACKEND_URL and try again.",
+        "We could not reach Cashword. Please try again shortly.",
       );
     }
   };
@@ -283,7 +283,7 @@ export async function apiBlob(path: string): Promise<Blob> {
       throw new ApiError(
         0,
         "CONNECTION_ERROR",
-        "We could not reach Cashword. Check BACKEND_URL and try again.",
+        "We could not reach Cashword. Please try again shortly.",
       );
     }
   };

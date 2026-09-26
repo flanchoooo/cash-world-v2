@@ -5,11 +5,10 @@ The package consists of the Spring Boot backend and React build served by Nginx.
 ## Local development package
 
 ```sh
-# Configure DB_URL, DB_USER and DB_PASSWORD in .env first.
 APP_PORT=18080 docker compose up --build -d
 ```
 
-Open `http://localhost:8089` for the admin app or `http://localhost:18080` for the backend API with the port override above. Without the override, the API is at `http://localhost:8011`. This deployment uses the dev profile, seeded configuration and mock biller. The Compose frontend proxies `/api` to the backend service, keeping browser requests same-origin and avoiding CORS configuration. When running Vite outside Compose, its default proxy target is `http://51.222.205.225:8011`; override `BACKEND_URL` to use a different backend. Set the backend's `ADMIN_ORIGIN` to the frontend origin. In Compose, it defaults to `http://localhost:8089`.
+Open `http://localhost:8089` for the admin app or `http://localhost:18080` for the backend API with the port override above. Without the override, the API is at `http://localhost:8011`. This deployment uses the dev profile, seeded configuration and mock biller. The Compose frontend proxies `/api` to the backend service, keeping browser requests same-origin and avoiding CORS configuration. When running Vite outside Compose, its default proxy target is `http://51.222.205.225:8011`; override `BACKEND_URL` to use a different backend. Compose uses the frontend origin `http://localhost:8089`.
 
 ## Production deployment
 

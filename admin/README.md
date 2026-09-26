@@ -52,7 +52,7 @@ All balance movements continue through LedgerService. Reversal creates compensat
 
 ## Deployment
 
-From the repository root, set `DB_URL`, `DB_USER` and `DB_PASSWORD` in `.env`, then run `docker compose up --build`. It starts the Spring backend and React frontend and connects the backend to your existing MySQL database. Open **http://localhost:8089**. The backend listens on **http://localhost:8011**. The Compose `ADMIN_ORIGIN` defaults to the admin URL. If changing `ADMIN_PORT`, also change `ADMIN_ORIGIN`. Override `APP_PORT` if needed. When running Vite outside Compose, `BACKEND_URL` defaults to `http://51.222.205.225:8011`.
+From the repository root, run `docker compose up --build`. It starts the Spring backend and React frontend using `application-dev.yml`; no Spring variables are needed in `.env`. Open **http://localhost:8089**. The backend listens on **http://localhost:8011**. Optional `.env` values only change host ports. When running Vite outside Compose, `BACKEND_URL` defaults to `http://51.222.205.225:8011`.
 
 This repository has one Compose file: `docker-compose.yml`. It runs MySQL, the Spring backend and the React frontend together. Nginx serves the frontend and proxies `/api` to the backend, preserving the browser Origin and authorization headers. Production hosting needs a separate deployment environment, HTTPS domain, database and secrets.
 

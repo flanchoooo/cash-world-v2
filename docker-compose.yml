@@ -2,29 +2,21 @@ services:
   backend:
     build: .
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
-      SERVER_PORT: 8011
-      DB_URL: ${DB_URL:?Set DB_URL to the existing database}
-      DB_USER: ${DB_USER:?Set DB_USER to the existing database user}
-      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD to the existing database password}
-      FLYWAY_USER: ${FLYWAY_USER:-${DB_USER}}
-      FLYWAY_PASSWORD: ${FLYWAY_PASSWORD:-${DB_PASSWORD}}
-      ADMIN_ORIGIN: ${ADMIN_ORIGIN:-http://localhost:8089}
-      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-local-admin-change-me}
-      JWT_SECRET: ${JWT_SECRET:-development-only-secret-at-least-32-bytes-change-me}
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8011}
-      REMITTANCE_RATES: ${REMITTANCE_RATES:-USD:BWP=13.500000}
+      ADMIN_ORIGIN: http://localhost:8089
     ports:
       - "${APP_PORT:-8011}:8011"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8011/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
     restart: unless-stopped
 
   frontend:
     build: ./admin
-    environment:
-      BACKEND_URL: ${BACKEND_URL:-http://backend:8011}
     ports:
       - "${ADMIN_PORT:-8089}:8080"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
