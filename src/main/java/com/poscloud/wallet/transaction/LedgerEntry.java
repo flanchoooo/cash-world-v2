@@ -16,6 +16,7 @@ import lombok.*;
 @Entity
 @Table(name = "transactions_ledger")
 public class LedgerEntry extends BaseEntity {
+  @Column(length = 50, nullable = false)
   private String transactionReference;
   private UUID transactionTypeId;
 
@@ -54,6 +55,8 @@ public class LedgerEntry extends BaseEntity {
 
   private String externalReference;
   private String providerReference;
+
+  @Column(length = 50)
   private String originalTransactionReference;
 
   @Enumerated(EnumType.STRING)

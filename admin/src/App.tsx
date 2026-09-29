@@ -14,7 +14,6 @@ import {
   ChevronRight,
   CircleAlert,
   Command,
-  HelpCircle,
   LoaderCircle,
   LogOut,
   Menu,
@@ -45,6 +44,7 @@ import { CashOut } from "./pages/CashOut";
 import { RemittanceReports } from "./pages/RemittanceReports";
 import { CreditSales } from "./pages/CreditSales";
 import { Expenses } from "./pages/Expenses";
+import { ExpenseSettings } from "./pages/ExpenseSettings";
 
 function Gate({ children }: { children: React.ReactNode }) {
   const state = useSyncExternalStore(subscribe, getSession);
@@ -57,7 +57,7 @@ function Gate({ children }: { children: React.ReactNode }) {
             <>
               <LoaderCircle className="spin" size={24} />
               <h1>Opening your workspace</h1>
-              <p>Verifying your secure session…</p>
+              <p>Signing you in…</p>
             </>
           ) : (
             <>
@@ -120,7 +120,6 @@ function Shell({ session }: { session: Session }) {
   const [logout, setLogout] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [help, setHelp] = useState(false);
   const [command, setCommand] = useState(false);
   const [search, setSearch] = useState("");
   const [now, setNow] = useState(Date.now());
@@ -248,17 +247,6 @@ function Shell({ session }: { session: Session }) {
         </nav>
         <div className="sidebar-bottom">
           <button
-            className="help-link"
-            onClick={() => {
-              setMobile(false);
-              setHelp(true);
-            }}
-          >
-            <HelpCircle size={18} />
-            <span>Help & workspace guide</span>
-            <ChevronRight size={15} />
-          </button>
-          <button
             className="sidebar-profile"
             onClick={() => {
               setMobile(false);
@@ -314,9 +302,6 @@ function Shell({ session }: { session: Session }) {
                 <Command size={11} /> K
               </kbd>
             </button>
-            <span className="secure-pill">
-              <span className="status-dot" /> Secure session
-            </span>
             <button
               className="mobile-profile"
               aria-label="My profile"
@@ -382,6 +367,8 @@ function Shell({ session }: { session: Session }) {
               <CreditSales user={user} />
             ) : activeId === "expenses" ? (
               <Expenses />
+            ) : activeId === "expense-settings" ? (
+              <ExpenseSettings />
             ) : (
               <Banking key={activeId} resource={activeId} user={user} />
             )
@@ -480,10 +467,7 @@ function Shell({ session }: { session: Session }) {
         onClose={() => setLogout(false)}
         busy={busy}
       >
-        <p className="muted">
-          Your secure session will end on this browser. You can sign in again
-          when you’re ready.
-        </p>
+        <p className="muted">You’ll be signed out on this browser.</p>
         {error && (
           <div className="alert" role="alert">
             {error}
@@ -523,41 +507,6 @@ function Shell({ session }: { session: Session }) {
             Sign out
           </button>
         </div>
-      </Dialog>
-      <Dialog
-        open={help}
-        title="Help"
-        onClose={() => setHelp(false)}
-      >
-        <p className="muted">
-          Use this platform to manage customers, accounts, payments and
-          operational configuration.
-        </p>
-        <div className="guide-item">
-          <ShieldCheck size={20} />
-          <div>
-            <h3>Access by role</h3>
-            <p>
-              Only areas available to your role appear in navigation. The server
-              also checks access for every request.
-            </p>
-          </div>
-        </div>
-        <div className="guide-item">
-          <Search size={20} />
-          <div>
-            <h3>Search</h3>
-            <p>
-              Use the workspace directory or press Ctrl/⌘ K to find an area.
-              Financial actions require confirmation and are validated by the
-              backend.
-            </p>
-          </div>
-        </div>
-        <p className="muted">
-          For account or password assistance, contact your organisation’s
-          administrator.
-        </p>
       </Dialog>
       <Dialog
         open={command}
@@ -641,7 +590,9 @@ export default function App() {
               <Navigate
                 to="/login"
                 replace
-                state={{ from: location.pathname + location.search + location.hash }}
+                state={{
+                  from: location.pathname + location.search + location.hash,
+                }}
               />
             )
           }

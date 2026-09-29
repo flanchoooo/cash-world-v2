@@ -2,7 +2,7 @@ services:
   backend:
     build: .
     environment:
-      ADMIN_ORIGIN: http://54.36.182.209:8089
+      ADMIN_ORIGIN: http://54.36.182.209:8089,https://0ff2-74-244-197-131.ngrok-free.app
     ports:
       - "${APP_PORT:-8011}:8011"
     healthcheck:

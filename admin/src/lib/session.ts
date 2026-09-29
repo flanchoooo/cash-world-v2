@@ -74,6 +74,7 @@ const operationErrors: Record<string, string> = {
   INVALID_AMOUNT:
     "Enter a positive amount within the currency's supported decimal places.",
   INVALID_REQUEST: "Check the required fields, formats and amount limits.",
+  INVALID_EXPENSE_EMPLOYEE: "Choose an active employee for Requested by.",
   FEE_NOT_CONFIGURED:
     "No applicable fee rule is configured for this operation.",
   FX_RATE_NOT_CONFIGURED:
@@ -112,6 +113,7 @@ const operationErrors: Record<string, string> = {
   INVALID_MOBILE_PIN: "The four-digit mobile PIN is incorrect.",
   PRODUCT_PLAN_NOT_FOUND: "Select a predefined product plan from Settings.",
   PRODUCT_PLAN_INACTIVE: "The selected product plan is inactive.",
+  INVALID_RECEIPT: "Upload PDF, JPG, PNG or WebP receipt files smaller than 5 MB.",
 };
 async function responseData(response: Response) {
   const data = await response.json().catch(() => null);

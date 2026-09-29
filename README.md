@@ -12,11 +12,11 @@ Prerequisites: Docker with Compose and access to an existing MySQL database; Jav
 docker compose up --build -d
 ```
 
-The frontend listens on port `8089`; the backend API listens on port `8011`. The Compose login origin is set to the VPS address below. For local browser login, change `ADMIN_ORIGIN` in `docker-compose.yml` to `http://localhost:8089`. Swagger UI is at [localhost:8011/swagger-ui/index.html](http://localhost:8011/swagger-ui/index.html), and the OpenAPI document is at [localhost:8011/v3/api-docs](http://localhost:8011/v3/api-docs). Backend health is at `/actuator/health`.
+The frontend listens on port `8089`; the backend API listens on port `8011`. Browser login accepts requests from the same frontend address, including HTTPS addresses behind a proxy. Swagger UI is at [localhost:8011/swagger-ui/index.html](http://localhost:8011/swagger-ui/index.html), and the OpenAPI document is at [localhost:8011/v3/api-docs](http://localhost:8011/v3/api-docs). Backend health is at `/actuator/health`.
 
 Development login: `admin` / `local-admin-change-me`. Compose uses the Spring development settings in `application-dev.yml`; no Spring settings are needed in `.env`.
 
-On the VPS, open `http://54.36.182.209:8089`. Browser login requires `ADMIN_ORIGIN` to match the exact frontend address, including the scheme and port. Compose sets it to that VPS address. If you change the public address later, update this one value in `docker-compose.yml`. The frontend's `/api` proxy continues to reach the backend by its Compose service name.
+On the VPS, open `http://54.36.182.209:8089` or the configured HTTPS proxy address. Browser session requests use relative `/api` URLs on that same address; the frontend's `/api` proxy reaches the backend by its Compose service name.
 
 To run Java directly:
 
@@ -164,6 +164,6 @@ Compatibility was checked against the [Spring Boot 3.5 system requirements](http
 
 The modern React administration application in `admin/` includes dashboard totals, customer and wallet operations, transactions/reversals, bills, remittances, commissions, users/access, configuration and a read-only audit trail. Browser sessions use HttpOnly refresh cookies and in-memory access tokens. New administration queries enforce staff/corporate scope on the server.
 
-Restart the updated backend, then run `cd admin && npm ci && BACKEND_URL=http://localhost:8011 npm run dev` and open `http://localhost:5173`. Vite proxies API requests to `BACKEND_URL` so the browser always calls the frontend origin and does not need cross-origin access. Set `ADMIN_ORIGIN` on the backend to the frontend origin (for example, `http://localhost:5173`). Docker Compose uses the same `BACKEND_URL` setting for its Nginx proxy and defaults to `http://backend:8011`; the administration app is served at `http://localhost:8089`.
+Restart the updated backend, then run `cd admin && npm ci && npm run dev` and open `http://localhost:5173`. Vite proxies API requests to `http://127.0.0.1:8011` by default, preserving the public Host and HTTPS scheme when accessed through a tunnel. The browser always calls the frontend origin and does not need cross-origin access. Set `ADMIN_ORIGIN` on the backend only for additional explicitly trusted origins. Docker Compose uses Nginx to proxy `/api` to `http://backend:8011`; the administration app is served at `http://localhost:8089`.
 
 See [administration setup](admin/README.md), [API integration review](docs/admin-integration.md) and [production deployment](docs/admin-deployment.md). Production hosting requires the target server/domain and secrets; no live deployment has been performed.

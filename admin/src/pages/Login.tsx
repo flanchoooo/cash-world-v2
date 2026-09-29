@@ -36,7 +36,8 @@ export function Login() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema) });
-  if (state.phase === "authenticated") return <Navigate to={destination} replace />;
+  if (state.phase === "authenticated")
+    return <Navigate to={destination} replace />;
   return (
     <div className="login-page">
       <aside className="login-story">
@@ -44,7 +45,6 @@ export function Login() {
         <div className="story-copy">
           <span className="eyebrow">ADMINISTRATION</span>
           <h1>Business operations</h1>
-          <p>Manage customers, wallets, payments and access.</p>
         </div>
         <div className="story-footer">
           <ShieldCheck size={18} />
@@ -63,11 +63,8 @@ export function Login() {
           <div className="login-symbol">
             <LockKeyhole size={24} />
           </div>
-          <span className="eyebrow green">SIGN IN</span>
+          <span className="eyebrow aqua">SIGN IN</span>
           <h2>Administrator sign-in</h2>
-          <p className="muted">
-            Use the credentials provided by your administrator.
-          </p>
           <form
             onSubmit={handleSubmit(async (values) => {
               setError("");
@@ -142,14 +139,6 @@ export function Login() {
               )}
             </button>
           </form>
-          <div className="login-help">
-            <ShieldCheck size={17} />
-            <p>
-              Having trouble signing in?
-              <br />
-              <span>Contact your organisation’s administrator.</span>
-            </p>
-          </div>
         </div>
         <footer className="login-bottom">
           <span>© {new Date().getFullYear()} Cashword</span>

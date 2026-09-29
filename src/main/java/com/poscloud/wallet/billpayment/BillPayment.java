@@ -12,6 +12,7 @@ import lombok.*;
 @Entity
 @Table(name = "bill_payments")
 public class BillPayment extends BaseEntity {
+  @Column(length = 50, nullable = false, unique = true)
   private String transactionReference;
   private UUID billerId;
   private UUID billerProductId;

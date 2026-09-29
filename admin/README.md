@@ -4,7 +4,7 @@ React + TypeScript + Vite, Tailwind CSS, React Router, TanStack Query, React Hoo
 
 ## Run locally
 
-Use Node 22.12+ and the updated Java 17 backend. The frontend runs at **http://localhost:8089**, with `/api` proxied to **http://localhost:8011**.
+Use Node 22.12+ and the updated Java 17 backend. Vite runs at **http://localhost:5173**, with `/api` proxied to **http://127.0.0.1:8011**. An HTTPS tunnel to Vite can use the same relative `/api` URLs.
 
 ```sh
 cd admin
@@ -12,7 +12,7 @@ npm ci
 npm run dev
 ```
 
-Use your backend account. No password is embedded in React. Development browser authentication trusts exactly `http://localhost:8089`; use `localhost`, not `127.0.0.1`. Set backend `ADMIN_ORIGIN` to use a different frontend origin. Copy `.env.example` to `.env` and set `BACKEND_URL` if the backend runs elsewhere. This is a server-side development setting; it is not exposed as a browser secret.
+Use your backend account. No password is embedded in React. Browser authentication accepts the same origin that serves the frontend. `ADMIN_ORIGIN` can also name additional trusted origins, separated by commas. `BACKEND_URL` is an optional server-side Vite proxy setting; the browser always calls relative `/api` URLs. Vite logs proxy request headers with credentials redacted and backend status in development. Set `PROXY_DEBUG=0` to silence those logs.
 
 ```sh
 npm test
@@ -38,7 +38,7 @@ Lists use page sizes of 20. Date filters use the browser's local day boundaries 
 
 SUPER_ADMIN can use all workspaces. OPERATIONS can use all except user administration, and cannot write currencies, transaction types or system-wallet configuration. CORPORATE_ADMIN has its own wallets, bill payments, remittances and team users. Retail roles cannot sign in to this platform. The backend scopes reads and checks mutations independently of the frontend.
 
-The refresh token is an HttpOnly, SameSite=Strict cookie under `/api/auth/browser`, Secure in production. Access tokens live only in memory. Browser session POSTs require an exact trusted Origin. No token is stored in local/session storage. Refresh is deduplicated within the tab and uses Web Locks across tabs where supported; browsers without Web Locks may require a new login if simultaneous rotations race.
+The refresh token is an HttpOnly, SameSite=Strict cookie under `/api/auth/browser`, Secure in production. Access tokens live only in memory. Browser session POSTs require the frontend's Origin or an explicitly trusted Origin. No token is stored in local/session storage. Refresh is deduplicated within the tab and uses Web Locks across tabs where supported; browsers without Web Locks may require a new login if simultaneous rotations race.
 
 Logout revokes its refresh token and increments the user's access-token version. Other devices' access tokens become invalid but their unrevoked refresh tokens may renew. Same-origin tabs receive a logout notification containing no credentials. Access changes also increment token version.
 
@@ -52,8 +52,8 @@ All balance movements continue through LedgerService. Reversal creates compensat
 
 ## Deployment
 
-From the repository root, run `docker compose up --build`. It starts the Spring backend and React frontend using `application-dev.yml`; no Spring variables are needed in `.env`. Open **http://localhost:8089**. The backend listens on **http://localhost:8011**. Optional `.env` values only change host ports. When running Vite outside Compose, `BACKEND_URL` defaults to `http://51.222.205.225:8011`.
+From the repository root, run `docker compose up --build`. It starts the Spring backend and React frontend using `application-dev.yml`; no Spring variables are needed in `.env`. Open **http://localhost:8089**. The backend listens on **http://localhost:8011**. Optional `.env` values only change host ports. When running Vite outside Compose, `BACKEND_URL` defaults to `http://127.0.0.1:8011`.
 
-This repository has one Compose file: `docker-compose.yml`. It runs MySQL, the Spring backend and the React frontend together. Nginx serves the frontend and proxies `/api` to the backend, preserving the browser Origin and authorization headers. Production hosting needs a separate deployment environment, HTTPS domain, database and secrets.
+This repository has one Compose file: `docker-compose.yml`. It runs the Spring backend and React frontend; the backend uses its configured database. Nginx serves the frontend and proxies `/api` to the backend, preserving the browser Origin, cookies and authorization headers. Production hosting needs a separate deployment environment, HTTPS domain, database and secrets.
 
 The backend still uses a mock biller in development and has no live biller/remittance-network adapter. Production rejects unconfigured provider operations. Existing reconciliation, funding and compliance limitations in the root README remain applicable.

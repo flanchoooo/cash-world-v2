@@ -11,6 +11,7 @@ import {
   FileChartColumn,
   BadgeDollarSign,
   Receipt,
+  SlidersHorizontal,
 } from "lucide-react";
 import type { Permission, Role, User } from "./session";
 export const roleNames: Record<Role, string> = {
@@ -155,6 +156,16 @@ export const workspaces = [
     group: "Administration",
     roles: staffRoles,
     description: "Record and review business expenses.",
+    stage: 4,
+    permission: "EXPENSES_MANAGE",
+  },
+  {
+    id: "expense-settings",
+    name: "Expense settings",
+    icon: SlidersHorizontal,
+    group: "Administration",
+    roles: staffRoles,
+    description: "Manage expense categories, vendors and employees.",
     stage: 4,
     permission: "EXPENSES_MANAGE",
   },

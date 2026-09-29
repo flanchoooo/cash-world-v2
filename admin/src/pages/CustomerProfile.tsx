@@ -277,7 +277,7 @@ export function CustomerProfile({
               <span>{name.slice(0, 1).toUpperCase()}</span>
             </div>
             <div>
-              <p className="eyebrow green">CUSTOMER PROFILE</p>
+              <p className="eyebrow aqua">CUSTOMER PROFILE</p>
               <h1>{name}</h1>
               <p className="profile-subtitle">
                 {customerNumber} ·{" "}

@@ -13,7 +13,10 @@ import lombok.*;
 @Entity
 @Table(name = "external_sales")
 public class ExternalSale extends BaseEntity {
+  @Column(length = 50, nullable = false, unique = true)
   private String transactionReference;
+
+  @Column(length = 50)
   private String reversalTransactionReference;
   private UUID customerId;
   private UUID walletId;

@@ -13,8 +13,13 @@ import lombok.*;
 @Entity
 @Table(name = "remittances")
 public class Remittance extends BaseEntity {
+  @Column(length = 50, nullable = false, unique = true)
   private String remittanceReference;
+
+  @Column(length = 50, nullable = false, unique = true)
   private String transactionReference;
+
+  @Column(length = 50, unique = true)
   private String payoutTransactionReference;
   private UUID senderCustomerId;
   private UUID receiverCustomerId;

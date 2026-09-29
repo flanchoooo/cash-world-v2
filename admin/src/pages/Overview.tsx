@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import {
   ArrowDownUp,
   ArrowRight,
-  Check,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -12,11 +11,15 @@ import {
   SlidersHorizontal,
   UserRound,
   LockKeyhole,
-  CircleCheck,
   Network,
 } from "lucide-react";
 import type { Session } from "../lib/session";
-import { canAccess, workspaces, roleNames, type Workspace } from "../lib/workspaces";
+import {
+  canAccess,
+  workspaces,
+  roleNames,
+  type Workspace,
+} from "../lib/workspaces";
 import { Dialog } from "../components/Dialog";
 export function Overview({
   session,
@@ -60,23 +63,12 @@ export function Overview({
         <div className="heading-row">
           <div>
             <h1>Administration overview</h1>
-            <p>Manage customers, accounts, payments and settings.</p>
           </div>
           <button className="button secondary" onClick={onProfile}>
             <UserRound size={16} /> My profile
           </button>
         </div>
       </div>
-      <section className="welcome-banner">
-        <div>
-          <span className="eyebrow">ADMINISTRATION</span>
-          <h2>Overview</h2>
-          <p>Signed in as {session.user.username}.</p>
-        </div>
-        <div className="welcome-seal" aria-hidden="true">
-          <ShieldCheck size={38} />
-        </div>
-      </section>
       <nav className="mobile-workspaces" aria-label="All workspaces">
         <h2>Workspaces</h2>
         <div className="mobile-workspace-grid">
@@ -98,14 +90,12 @@ export function Overview({
             Access level <ShieldCheck size={17} />
           </div>
           <strong>{roleNames[session.user.role]}</strong>
-          <span>Based on your assigned role</span>
         </section>
         <section className="summary-card">
           <div className="summary-label">
             Session time remaining <Clock3 size={17} />
           </div>
           <strong className="tabular">{remaining}</strong>
-          <span>Automatically renewed</span>
         </section>
         <section className="summary-card">
           <div className="summary-label">
@@ -115,11 +105,6 @@ export function Overview({
             <span className={`status-dot ${connected ? "" : "amber"}`} />
             {connected ? "Connected" : "Reconnecting"}
           </strong>
-          <span>
-            {connected
-              ? "Account is available"
-              : "Checking account status"}
-          </span>
         </section>
       </div>
       <div className="workspace-columns">
@@ -132,15 +117,12 @@ export function Overview({
                   {
                     workspaces.filter(
                       (w) =>
-                        w.id !== "overview" &&
-                        canAccess(w.id, session.user),
+                        w.id !== "overview" && canAccess(w.id, session.user),
                     ).length
                   }
                 </span>
               </h2>
-              <p>Operational areas available to your role.</p>
             </div>
-            <span className="badge neutral">Operations workspace</span>
           </div>
           <div className="table-toolbar">
             <div className="search-field">
@@ -278,48 +260,6 @@ export function Overview({
             </div>
           </div>
         </section>
-        <aside className="overview-aside">
-          <section className="panel access-panel">
-            <span className="access-icon">
-              <ShieldCheck size={21} />
-            </span>
-            <h2>Access</h2>
-            <p>
-              Your role controls which areas and actions are available.
-            </p>
-            <ul>
-              <li>
-                <CircleCheck size={16} />
-                <span>Active account</span>
-              </li>
-              <li>
-                <CircleCheck size={16} />
-                <span>Role-based access</span>
-              </li>
-              <li>
-                <CircleCheck size={16} />
-                <span>Secure session</span>
-              </li>
-            </ul>
-            <button className="text-button green-link" onClick={onProfile}>
-              View your profile <ArrowRight size={15} />
-            </button>
-          </section>
-          <section className="release-note">
-            <span className="eyebrow">OPERATIONS</span>
-            <h3>Operations</h3>
-            <p>
-              Use the tools available to your account. Access is based on your
-              assigned role.
-            </p>
-            <div>
-              <span className="mini-check">
-                <Check size={12} />
-              </span>{" "}
-              Backend connected
-            </div>
-          </section>
-        </aside>
       </div>
       <Dialog
         open={!!selected}

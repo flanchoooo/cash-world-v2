@@ -13,6 +13,7 @@ import lombok.*;
 @Entity
 @Table(name = "transaction_requests")
 public class TransactionRecord extends BaseEntity {
+  @Column(length = 50, nullable = false, unique = true)
   private String transactionReference;
   private UUID userId;
   private String idempotencyKey;
@@ -22,9 +23,16 @@ public class TransactionRecord extends BaseEntity {
   @Enumerated(EnumType.STRING)
   private TransactionStatus status;
 
+  @Column(length = 50, unique = true)
   private String originalTransactionReference;
+
+  @Column(length = 50)
   private String remittanceReference;
+
+  @Column(length = 3)
   private String sourceCurrency;
+
+  @Column(length = 3)
   private String destinationCurrency;
 
   @Column(precision = 19, scale = 4)
